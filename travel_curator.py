@@ -32,14 +32,20 @@ start_date = st.date_input("When will your trip start?", value=date.today())
 
 num_days = st.slider("How many days should I plan for?", 1, 7, 3)
 
-itinerary_text = ""
-
 def add_google_maps_links(text):
     def linkify_place(match):
         place = match.group(0)
         query = place.replace(" ", "+")
         return f"[{place}](https://www.google.com/maps/search/?api=1&query={query})"
     return re.sub(r'\b([A-Z][a-zA-Z]+(?: [A-Z][a-zA-Z]+)*)\b', linkify_place, text)
+
+def split_by_days(text):
+    # Split on '### Day' to isolate each day
+    days = re.split(r'(### Day \d+:)', text)
+    combined = []
+    for i in range(1, len(days), 2):
+        combined.append(days[i] + days[i + 1])
+    return combined
 
 # --- Button to Generate ---
 if st.button("Generate My Trip Ideas"):
@@ -53,12 +59,12 @@ if st.button("Generate My Trip Ideas"):
             Create a {num_days}-day itinerary for {destination}, starting {start_date}.
 
             Important formatting instructions:
+            - Begin the itinerary immediately with '### Day 1: ...' (no introduction or extra text).
             - Use **only Markdown headings and bullet points** (no HTML tags).
             - Title each day as a Markdown heading, e.g., '### Day 1: Arrival in Denver'.
             - Use bullet points for morning, afternoon, and evening activities with emojis (☀️, 🌇, 🌙).
             - Add clickable Markdown links for restaurants, tours, or places of interest.
-            - Do not use raw HTML like <details> or <summary> tags.
-            - Make the output easy to read in Markdown format.
+            - Do not add text like 'Copy or Download' or any conclusion text.
             """
 
             try:
@@ -73,7 +79,16 @@ if st.button("Generate My Trip Ideas"):
                 itinerary_text = response.choices[0].message.content
                 itinerary_text = add_google_maps_links(itinerary_text)
 
-                st.markdown(itinerary_text, unsafe_allow_html=False)
+                days = split_by_days(itinerary_text)
+                if not days:
+                    st.markdown(itinerary_text)
+                else:
+                    for day in days:
+                        lines = day.splitlines()
+                        day_title = lines[0].replace("### ", "")
+                        content = "\n".join(lines[1:])
+                        with st.expander(day_title.strip()):
+                            st.markdown(content)
 
             except Exception as e:
                 st.error(f"Error generating itinerary: {e}")
