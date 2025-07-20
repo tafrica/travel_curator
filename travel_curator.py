@@ -32,10 +32,10 @@ start_date = st.date_input("When will your trip start?", value=date.today())
 
 num_days = st.slider("How many days should I plan for?", 1, 7, 3)
 
-STOPWORDS = {"Day", "Morning", "Afternoon", "Evening", "Arrival", "Breakfast", "Lunch", "Dinner", "Exploration"}
+STOPWORDS = {"Day", "Morning", "Afternoon", "Evening", "Arrival", "Breakfast", "Lunch", "Dinner", "Exploration", "Hotel"}
 
 def link_line(line):
-    # Skip headings or lines with emojis
+    # Skip lines that are headings or time-of-day markers
     if line.strip().startswith("###") or line.strip().startswith(("☀️", "🌇", "🌙")):
         return line
     # Skip lines already containing markdown links
@@ -44,11 +44,13 @@ def link_line(line):
 
     def replacer(match):
         phrase = match.group(0)
+        # Skip single-word matches
+        if " " not in phrase:
+            return phrase
         if phrase.split()[0] in STOPWORDS:
             return phrase
         return f"[{phrase}](https://www.google.com/maps/search/?api=1&query={phrase.replace(' ', '+')})"
 
-    # Only link multi-word capitalized phrases
     return re.sub(r'\b([A-Z][a-z]+(?: [A-Z][a-z]+)+)\b', replacer, line)
 
 def add_google_maps_links(text):
