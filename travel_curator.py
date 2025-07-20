@@ -35,16 +35,13 @@ STOPWORDS = {"Day", "Morning", "Afternoon", "Evening", "Arrival", "Breakfast", "
 
 def link_line(line):
     stripped = line.strip()
-    # Skip lines starting with headings, day markers, or time-of-day
     if stripped.startswith("###") or stripped.startswith("Day") or stripped.startswith(("☀️", "🌇", "🌙")):
         return line
-    # Skip lines already containing markdown links
     if "[" in line and "](" in line:
         return line
 
     def replacer(match):
         phrase = match.group(0)
-        # Skip single-word phrases
         if " " not in phrase:
             return phrase
         if phrase.split()[0] in STOPWORDS:
@@ -68,10 +65,32 @@ def clean_to_days(text):
     return combined if combined else [text]
 
 # --- TEST DATA (used if TEST_MODE = True) ---
-SAMPLE_ITINERARY = """Day 1: Arrival in Denver (2025-07-28)
+SAMPLE_ITINERARY = """### Day 1: Arrival in Denver (2025-07-28)
 ☀️ Morning: Arrive in Denver, check into your hotel.
-🌄 Afternoon: Explore the Denver Botanic Gardens and enjoy a leisurely stroll among the beautiful plants.
-🌙 Evening: Dinner at Linger — a unique restaurant with a rooftop view and diverse menu.
+🌄 Afternoon: Visit the Denver Art Museum — currently featuring a Monet exhibition (July–August 2025).
+🌙 Evening: Dinner at Linger — a rooftop restaurant with live jazz music.
+
+**Extra Details:**  
+- **Reading:** "The History of Denver's Art Scene" (Denver Post, June 2025).  
+- **Playlist:** "Summer Vibes in Colorado" on Spotify.  
+
+### Day 2: Exploring the Rockies
+☀️ Morning: Take a guided hike at Red Rocks Park.  
+🌄 Afternoon: Picnic near Bear Creek and visit the geological formations.  
+🌙 Evening: Attend a concert at Red Rocks Amphitheatre (check local events).  
+
+**Extra Details:**  
+- **Reading:** "A Beginner’s Guide to Colorado’s Geology".  
+- **Music:** Live recording from past Red Rocks concerts.  
+
+### Day 3: Aspen Adventure
+☀️ Morning: Drive to Aspen, stopping at Independence Pass for breathtaking views.  
+🌄 Afternoon: Explore the Aspen Art Museum and boutique shops.  
+🌙 Evening: Dinner at White House Tavern — known for its craft cocktails.  
+
+**Extra Details:**  
+- **Reading:** "Aspen’s Transformation from Mining Town to Cultural Hub".  
+- **Playlist:** Jazz nights in Aspen (Spotify curated list).  
 """
 
 # --- Button ---
@@ -93,7 +112,10 @@ if st.button("Generate My Trip Ideas"):
                 - Use Markdown headings for each day (### Day X: ...).
                 - Use bullet points for morning, afternoon, and evening activities with emojis (☀️, 🌇, 🌙).
                 - Add clickable Markdown links for specific restaurants, tours, or places of interest (but NOT for generic words like Morning, Afternoon, Evening).
-                - Include current events/exhibits where relevant.
+                - For each day, include an "**Extra Details:**" section with:
+                  - Info on current exhibits/events at cultural spots.
+                  - A recommended article/book for context.
+                  - A playlist or music suggestion that matches the vibe.
                 - Do not include any extra text like 'Copy or Download Your Itinerary'.
                 """ 
 
@@ -101,10 +123,10 @@ if st.button("Generate My Trip Ideas"):
                     response = client.chat.completions.create(
                         model="gpt-4o-mini",
                         messages=[
-                            {"role": "system", "content": "You are a friendly and creative travel planner who formats itineraries using pure Markdown."},
+                            {"role": "system", "content": "You are a creative travel planner who formats itineraries with Markdown and adds cultural context."},
                             {"role": "user", "content": prompt},
                         ],
-                        temperature=0.7
+                        temperature=0.8
                     )
                     raw_text = response.choices[0].message.content
                 except Exception as e:
