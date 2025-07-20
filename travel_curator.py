@@ -34,7 +34,10 @@ num_days = st.slider("How many days should I plan for?", 1, 7, 3)
 
 def ensure_extra_details(day_text):
     if "**Extra Details:**" not in day_text:
-        day_text += "\n\n**Extra Details:**\n- (No extra details provided by AI)"
+        # Add default extra details
+        day_text += "\n\n**Extra Details:**\n"
+        day_text += "- [Explore the destination on Google](https://www.google.com/search?q=" + urllib.parse.quote(destination) + ")\n"
+        day_text += "- [Listen to a themed playlist](https://open.spotify.com/search/" + urllib.parse.quote(destination) + ")"
     return day_text
 
 def clean_to_days(text):
@@ -47,28 +50,23 @@ def clean_to_days(text):
         combined = [ensure_extra_details(text)]
     return combined
 
-def link_extra_details(content):
+def auto_link_missing(content):
+    # Auto-link capitalized multi-word names without existing links
+    def replacer(match):
+        phrase = match.group(0)
+        # Skip if already linked or generic labels
+        if "[" in phrase or "Day" in phrase or phrase in ["Morning", "Afternoon", "Evening"]:
+            return phrase
+        return f"[{phrase}](https://www.google.com/maps/search/?api=1&query={urllib.parse.quote(phrase)})"
+
+    # Only modify non-linked lines
     lines = content.split("\n")
     new_lines = []
     for line in lines:
-        if line.strip().startswith("- **Reading:**") or line.strip().startswith("- **Playlist:**") or line.strip().startswith("- **Music:**"):
-            if "[" not in line:  # No link provided, add a Google Search link
-                phrase = line.split("**:")[-1].strip()
-                if phrase:
-                    query = urllib.parse.quote(phrase)
-                    new_line = f"{line.split(':')[0]}: [{phrase}](https://www.google.com/search?q={query})"
-                    new_lines.append(new_line)
-                    continue
+        if line.startswith(("☀️", "🌇", "🌙")) and "[" not in line:
+            line = re.sub(r'([A-Z][a-z]+(?: [A-Z][a-z]+)+)', replacer, line)
         new_lines.append(line)
     return "\n".join(new_lines)
-
-def validate_links(content):
-    warnings = []
-    lines = content.split("\n")
-    for line in lines:
-        if line.startswith(("☀️", "🌇", "🌙")) and "[" not in line:
-            warnings.append(f"⚠️ **Potential missing link:** {line}")
-    return warnings
 
 # --- TEST DATA ---
 SAMPLE_ITINERARY = """Day 1: Arrival in Denver (2025-07-28)
@@ -88,33 +86,6 @@ Day 2: Exploring the Rockies
 **Extra Details:**
 - **Reading:** [Colorado's Natural Wonders](https://www.google.com/search?q=Colorado's+Natural+Wonders).
 - **Music:** [Iconic live sets recorded at Red Rocks](https://open.spotify.com/album/6hwSFL0DMuXkUn2XP2DRX3).
-
-Day 3: Aspen Adventure
-☀️ Morning: Drive to [Aspen](https://www.aspenchamber.org/) via Independence Pass.
-🌄 Afternoon: Explore the [Aspen Art Museum](https://www.aspenartmuseum.org/) and boutiques.
-🌙 Evening: Dinner at [White House Tavern](https://www.whitehousetavern.com/) — known for craft cocktails.
-
-**Extra Details:**
-- **Reading:** [Aspen’s Cultural Renaissance](https://www.google.com/search?q=Aspen’s+Cultural+Renaissance).
-- **Playlist:** [Smooth Jazz Evenings in Aspen](https://open.spotify.com/playlist/3vY5iK1uBPa6wDRMQmxy1g).
-
-Day 4: Outdoor Thrills
-☀️ Morning: Go mountain biking in [Snowmass Village](https://www.gosnowmass.com/).
-🌄 Afternoon: Relax at [Glenwood Hot Springs](https://www.hotspringspool.com/).
-🌙 Evening: Dine at [Cache Cache](https://cachecache.com/) — renowned for French cuisine.
-
-**Extra Details:**
-- **Reading:** [Colorado's Best Hot Springs](https://www.google.com/search?q=Colorado's+Best+Hot+Springs).
-- **Playlist:** [Adventure Beats on Spotify](https://open.spotify.com/playlist/37i9dQZF1DWT6MhXz0jw61).
-
-Day 5: Farewell Day
-☀️ Morning: Brunch at [Snooze, an A.M. Eatery](https://snoozeeatery.com/).
-🌄 Afternoon: Last-minute shopping at [Larimer Square](https://www.larimersquare.com/).
-🌙 Evening: Sunset walk at [City Park](https://www.denvergov.org/parks-recreation/parks) before heading home.
-
-**Extra Details:**
-- **Reading:** [Denver's Top Brunch Spots](https://www.google.com/search?q=Denver's+Top+Brunch+Spots).
-- **Playlist:** [Relaxing Acoustic Mix](https://open.spotify.com/playlist/37i9dQZF1DWXmlLSKkfdAk).
 """
 
 # --- Button ---
@@ -126,25 +97,41 @@ if st.button("Generate My Trip Ideas"):
             raw_text = SAMPLE_ITINERARY
         else:
             with st.spinner("Creating your personalized itinerary..."):
-                prompt = f""" 
-                You are a travel expert. Based on the following user's preferences:
-                "{ideal_trip}"
-                Create a {num_days}-day itinerary for {destination}, starting {start_date}.
+                improved_prompt = f""" 
+                You are a creative travel planner. Your goal is to create itineraries that feel curated, personal, and full of cultural depth.
 
-                Requirements:
-                - For every restaurant, activity, or attraction, ALWAYS include a clickable Markdown link (e.g., [Linger](https://www.lingerdenver.com/)).
-                - For the "**Extra Details:**" section, ensure each reading, music, or playlist recommendation includes a link to a source (article, Spotify, or Google search).
-                - Start directly with 'Day 1: ...' (no intro or conclusion).
-                - Use bullet points for morning, afternoon, and evening activities with emojis (☀️, 🌇, 🌙).
-                - Do not include any extra text like 'Copy or Download Your Itinerary'.
+                1. For every restaurant, activity, or attraction, ALWAYS include a clickable Markdown link to a reputable site or Google Maps.
+                2. After listing morning, afternoon, and evening activities for each day, ALWAYS include an "**Extra Details:**" section.
+                   - This section should enrich the travel experience with:
+                     - A link to a relevant article, blog, or resource for context.
+                     - A playlist or music suggestion that matches the vibe (with a clickable link).
+                     - If applicable, a current exhibit, seasonal highlight, or cultural insight.
+                3. If real-time info is not available, invent realistic, helpful details.
+                4. Never skip Extra Details or links — create them even if you have to search generically.
+
+                Destination: {destination}
+                Trip duration: {num_days} days starting {start_date}.
+                Traveler preferences: {ideal_trip}
+
+                Format the itinerary like this example:
+
+                Day 1: Arrival in Denver (2025-07-28)
+                ☀️ Morning: Arrive at [Denver International Airport](https://www.flydenver.com/), check into [The Crawford Hotel](https://thecrawfordhotel.com/).
+                🌄 Afternoon: Visit the [Denver Art Museum](https://denverartmuseum.org/) — see the Monet exhibition.
+                🌙 Evening: Dinner at [Linger](https://www.lingerdenver.com/) — rooftop dining with live jazz.
+
+                **Extra Details:**
+                - **Reading:** [The History of Denver’s Art Scene](https://www.google.com/search?q=History+of+Denver's+Art+Scene).
+                - **Playlist:** [Colorado Summer Vibes on Spotify](https://open.spotify.com/playlist/37i9dQZF1DX0h0QnOySuGd).
+                - **Cultural Highlight:** Evening jazz concerts on the rooftop.
                 """ 
 
                 try:
                     response = client.chat.completions.create(
                         model="gpt-4o-mini",
                         messages=[
-                            {"role": "system", "content": "You are a creative travel planner who formats itineraries with Markdown, ensuring every restaurant or activity includes a valid link and all extra details are linked."},
-                            {"role": "user", "content": prompt},
+                            {"role": "system", "content": "You are a travel planner who creates detailed itineraries with links and cultural extras."},
+                            {"role": "user", "content": improved_prompt},
                         ],
                         temperature=0.8
                     )
@@ -161,9 +148,6 @@ if st.button("Generate My Trip Ideas"):
                     continue
                 day_title = lines[0]
                 content = "\n".join(lines[1:])
-                content = link_extra_details(content)
+                content = auto_link_missing(content)
                 with st.expander(day_title.strip()):
                     st.markdown(content)
-                    missing_links = validate_links(content)
-                    if missing_links:
-                        st.error("\n".join(missing_links))
