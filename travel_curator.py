@@ -77,8 +77,8 @@ SAMPLE_ITINERARY = """Day 1: Arrival in Denver (2025-07-28)
 🌙 Evening: Dinner at [Linger](https://www.lingerdenver.com/) — a rooftop restaurant with live jazz music.
 
 **Extra Details:**
-- **Reading:** The History of Denver's Art Scene (Denver Post).
-- **Playlist:** Summer Vibes in Colorado on Spotify.
+- **Reading:** [The History of Denver's Art Scene](https://www.google.com/search?q=The+History+of+Denver's+Art+Scene).
+- **Playlist:** [Summer Vibes in Colorado](https://open.spotify.com/playlist/37i9dQZF1DX0h0QnOySuGd).
 
 Day 2: Exploring the Rockies
 ☀️ Morning: Guided hike at [Red Rocks Park](https://www.redrocksonline.com/).
@@ -86,8 +86,35 @@ Day 2: Exploring the Rockies
 🌙 Evening: Concert at [Red Rocks Amphitheatre](https://www.redrocksonline.com/) (check schedule).
 
 **Extra Details:**
-- **Reading:** Colorado's Natural Wonders.
-- **Music:** Iconic live sets recorded at Red Rocks.
+- **Reading:** [Colorado's Natural Wonders](https://www.google.com/search?q=Colorado's+Natural+Wonders).
+- **Music:** [Iconic live sets recorded at Red Rocks](https://open.spotify.com/album/6hwSFL0DMuXkUn2XP2DRX3).
+
+Day 3: Aspen Adventure
+☀️ Morning: Drive to [Aspen](https://www.aspenchamber.org/) via Independence Pass.
+🌄 Afternoon: Explore the [Aspen Art Museum](https://www.aspenartmuseum.org/) and boutiques.
+🌙 Evening: Dinner at [White House Tavern](https://www.whitehousetavern.com/) — known for craft cocktails.
+
+**Extra Details:**
+- **Reading:** [Aspen’s Cultural Renaissance](https://www.google.com/search?q=Aspen’s+Cultural+Renaissance).
+- **Playlist:** [Smooth Jazz Evenings in Aspen](https://open.spotify.com/playlist/3vY5iK1uBPa6wDRMQmxy1g).
+
+Day 4: Outdoor Thrills
+☀️ Morning: Go mountain biking in [Snowmass Village](https://www.gosnowmass.com/).
+🌄 Afternoon: Relax at [Glenwood Hot Springs](https://www.hotspringspool.com/).
+🌙 Evening: Dine at [Cache Cache](https://cachecache.com/) — renowned for French cuisine.
+
+**Extra Details:**
+- **Reading:** [Colorado's Best Hot Springs](https://www.google.com/search?q=Colorado's+Best+Hot+Springs).
+- **Playlist:** [Adventure Beats on Spotify](https://open.spotify.com/playlist/37i9dQZF1DWT6MhXz0jw61).
+
+Day 5: Farewell Day
+☀️ Morning: Brunch at [Snooze, an A.M. Eatery](https://snoozeeatery.com/).
+🌄 Afternoon: Last-minute shopping at [Larimer Square](https://www.larimersquare.com/).
+🌙 Evening: Sunset walk at [City Park](https://www.denvergov.org/parks-recreation/parks) before heading home.
+
+**Extra Details:**
+- **Reading:** [Denver's Top Brunch Spots](https://www.google.com/search?q=Denver's+Top+Brunch+Spots).
+- **Playlist:** [Relaxing Acoustic Mix](https://open.spotify.com/playlist/37i9dQZF1DWXmlLSKkfdAk).
 """
 
 # --- Button ---
