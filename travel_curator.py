@@ -77,39 +77,37 @@ SAMPLE_ITINERARY = """Day 1: Arrival in Denver (2025-07-28)
 # --- Build Prompt ---
 def build_prompt():
     return f""" 
-    You are a creative travel planner. Your goal is to create itineraries that feel curated, personal, and full of cultural depth.
+You are a creative travel planner. Your goal is to create itineraries that feel curated, personal, and full of cultural depth.
 
-    1. For every restaurant, activity, or attraction, ALWAYS include a clickable Markdown link to a reputable site or Google Maps.
-    2. After listing morning, afternoon, and evening activities for each day, ALWAYS include an "**Extra Details:**" section.
-       - This section should enrich the travel experience with:
-         - A link to a relevant article, blog, or resource for context.
-         - A playlist or music suggestion that matches the vibe (with a clickable link).
-         - If applicable, a current exhibit, seasonal highlight, or cultural insight.
-    3. If real-time info is not available, invent realistic, helpful details.
-    4. Never skip Extra Details or links — create them even if you have to search generically.
+1. For every restaurant, activity, or attraction, ALWAYS include a clickable Markdown link to a reputable site or Google Maps.
+2. After listing morning, afternoon, and evening activities for each day, ALWAYS include an "**Extra Details:**" section.
+   - This section should enrich the travel experience with:
+     - A link to a relevant article, blog, or resource for context.
+     - A playlist or music suggestion that matches the vibe (with a clickable link).
+     - If applicable, a current exhibit, seasonal highlight, or cultural insight.
+3. If real-time info is not available, invent realistic, helpful details.
+4. Never skip Extra Details or links — create them even if you have to search generically.
 
-    Destination: {destination}
-    Trip duration: {num_days} days starting {start_date}.
-    Traveler preferences: {ideal_trip}
+Destination: {destination}
+Trip duration: {num_days} days starting {start_date}.
+Traveler preferences: {ideal_trip}
 
-    Format the itinerary like this example:
+Format the itinerary like this example:
 
-    Day 1: Arrival in Denver (2025-07-28)
-    ☀️ Morning: Arrive at [Denver International Airport](https://www.flydenver.com/), check into [The Crawford Hotel](https://thecrawfordhotel.com/).
-    🌄 Afternoon: Visit the [Denver Art Museum](https://denverartmuseum.org/) — see the Monet exhibition.
-    🌙 Evening: Dinner at [Linger](https://www.lingerdenver.com/) — rooftop dining with live jazz.
+Day 1: Arrival in Denver (2025-07-28)
+☀️ Morning: Arrive at [Denver International Airport](https://www.flydenver.com/), check into [The Crawford Hotel](https://thecrawfordhotel.com/).
+🌄 Afternoon: Visit the [Denver Art Museum](https://denverartmuseum.org/) — see the Monet exhibition.
+🌙 Evening: Dinner at [Linger](https://www.lingerdenver.com/) — rooftop dining with live jazz.
 
-    **Extra Details:**
-    - **Reading:** [The History of Denver’s Art Scene](https://www.google.com/search?q=History+of+Denver's+Art+Scene).
-    - **Playlist:** [Colorado Summer Vibes on Spotify](https://open.spotify.com/playlist/37i9dQZF1DX0h0QnOySuGd).
-    - **Cultural Highlight:** Evening jazz concerts on the rooftop.
-    """
+**Extra Details:**
+- **Reading:** [The History of Denver’s Art Scene](https://www.google.com/search?q=History+of+Denver's+Art+Scene).
+- **Playlist:** [Colorado Summer Vibes on Spotify](https://open.spotify.com/playlist/37i9dQZF1DX0h0QnOySuGd).
+- **Cultural Highlight:** Evening jazz concerts on the rooftop.
+"""
 
-# --- Prompt Preview ---
-with st.expander("🔍 Preview the AI Prompt"):
-    st.markdown(f"```
-{build_prompt()}
-```")
+# --- Prompt Preview Toggle ---
+if st.checkbox("Show Prompt Preview"):
+    st.code(build_prompt(), language="markdown")
 
 # --- Generate Itinerary ---
 if st.button("Generate My Trip Ideas"):
