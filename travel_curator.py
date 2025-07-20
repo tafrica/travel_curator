@@ -31,30 +31,6 @@ destination = st.text_input(
 start_date = st.date_input("When will your trip start?", value=date.today())
 num_days = st.slider("How many days should I plan for?", 1, 7, 3)
 
-STOPWORDS = {"Day", "Morning", "Afternoon", "Evening", "Arrival", "Breakfast", "Lunch", "Dinner", "Exploration", "Hotel"}
-
-def link_line(line):
-    stripped = line.strip()
-    if stripped.startswith("###") or stripped.startswith("Day") or stripped.startswith(("☀️", "🌇", "🌙")):
-        return line
-    if "[" in line and "](" in line:
-        return line
-
-    def replacer(match):
-        phrase = match.group(0)
-        if " " not in phrase:
-            return phrase
-        if phrase.split()[0] in STOPWORDS:
-            return phrase
-        return f"[{phrase}](https://www.google.com/maps/search/?api=1&query={phrase.replace(' ', '+')})"
-
-    return re.sub(r'\b([A-Z][a-z]+(?: [A-Z][a-z]+)+)\b', replacer, line)
-
-def add_google_maps_links(text):
-    lines = text.splitlines()
-    linked_lines = [link_line(line) for line in lines]
-    return "\n".join(linked_lines)
-
 def ensure_extra_details(day_text):
     if "**Extra Details:**" not in day_text:
         day_text += "\n\n**Extra Details:**\n- (No extra details provided by AI)"
@@ -70,47 +46,56 @@ def clean_to_days(text):
         combined = [ensure_extra_details(text)]
     return combined
 
+def validate_links(content):
+    # Look for capitalized phrases without links that might be restaurants or activities.
+    warnings = []
+    lines = content.split("\n")
+    for line in lines:
+        if line.startswith(("☀️", "🌇", "🌙")) and "[" not in line:
+            warnings.append(f"⚠️ **Potential missing link:** {line}")
+    return warnings
+
 # --- TEST DATA ---
 SAMPLE_ITINERARY = """Day 1: Arrival in Denver (2025-07-28)
-☀️ Morning: Arrive in Denver, check into your hotel.
-🌄 Afternoon: Visit the Denver Art Museum — currently featuring a Monet exhibition.
-🌙 Evening: Dinner at Linger — a rooftop restaurant with live jazz music.
+☀️ Morning: Arrive in [Denver International Airport](https://www.flydenver.com/), check into your hotel.
+🌄 Afternoon: Visit the [Denver Art Museum](https://denverartmuseum.org/) — currently featuring a Monet exhibition.
+🌙 Evening: Dinner at [Linger](https://www.lingerdenver.com/) — a rooftop restaurant with live jazz music.
 
 **Extra Details:**
 - **Reading:** "The History of Denver's Art Scene" (Denver Post).
 - **Playlist:** "Summer Vibes in Colorado" on Spotify.
 
 Day 2: Exploring the Rockies
-☀️ Morning: Guided hike at Red Rocks Park.
+☀️ Morning: Guided hike at [Red Rocks Park](https://www.redrocksonline.com/).
 🌄 Afternoon: Picnic near Bear Creek and visit geological formations.
-🌙 Evening: Concert at Red Rocks Amphitheatre (check schedule).
+🌙 Evening: Concert at [Red Rocks Amphitheatre](https://www.redrocksonline.com/) (check schedule).
 
 **Extra Details:**
 - **Reading:** "Colorado's Natural Wonders".
 - **Music:** Iconic live sets recorded at Red Rocks.
 
 Day 3: Aspen Adventure
-☀️ Morning: Drive to Aspen via Independence Pass.
-🌄 Afternoon: Explore the Aspen Art Museum and boutiques.
-🌙 Evening: Dinner at White House Tavern — known for craft cocktails.
+☀️ Morning: Drive to [Aspen](https://www.aspenchamber.org/) via Independence Pass.
+🌄 Afternoon: Explore the [Aspen Art Museum](https://www.aspenartmuseum.org/) and boutiques.
+🌙 Evening: Dinner at [White House Tavern](https://www.whitehousetavern.com/) — known for craft cocktails.
 
 **Extra Details:**
 - **Reading:** "Aspen’s Cultural Renaissance".
 - **Playlist:** Smooth Jazz Evenings in Aspen (Spotify).
 
 Day 4: Outdoor Thrills
-☀️ Morning: Go mountain biking in Snowmass Village.
-🌄 Afternoon: Relax at Glenwood Hot Springs.
-🌙 Evening: Dine at Cache Cache — renowned for French cuisine.
+☀️ Morning: Go mountain biking in [Snowmass Village](https://www.gosnowmass.com/).
+🌄 Afternoon: Relax at [Glenwood Hot Springs](https://www.hotspringspool.com/).
+🌙 Evening: Dine at [Cache Cache](https://cachecache.com/) — renowned for French cuisine.
 
 **Extra Details:**
 - **Reading:** "Colorado's Best Hot Springs".
 - **Playlist:** Adventure Beats on Spotify.
 
 Day 5: Farewell Day
-☀️ Morning: Brunch at Snooze, an A.M. Eatery.
-🌄 Afternoon: Last-minute shopping at Larimer Square.
-🌙 Evening: Sunset walk at City Park before heading home.
+☀️ Morning: Brunch at [Snooze, an A.M. Eatery](https://snoozeeatery.com/).
+🌄 Afternoon: Last-minute shopping at [Larimer Square](https://www.larimersquare.com/).
+🌙 Evening: Sunset walk at [City Park](https://www.denvergov.org/parks-recreation/parks) before heading home.
 
 **Extra Details:**
 - **Reading:** "Denver's Top Brunch Spots".
@@ -131,12 +116,11 @@ if st.button("Generate My Trip Ideas"):
                 "{ideal_trip}"
                 Create a {num_days}-day itinerary for {destination}, starting {start_date}.
 
-                Formatting rules:
-                - Start the response directly with 'Day 1: ...' (no intro or conclusion).
-                - Use Markdown headings for each day (Day X: ...).
+                Requirements:
+                - For every restaurant, activity, or attraction, ALWAYS include a clickable Markdown link (e.g., [Linger](https://www.lingerdenver.com/)).
+                - Start directly with 'Day 1: ...' (no intro or conclusion).
                 - Use bullet points for morning, afternoon, and evening activities with emojis (☀️, 🌇, 🌙).
-                - Add clickable Markdown links for specific restaurants, tours, or places of interest (but NOT for generic words like Morning, Afternoon, Evening).
-                - After the activities for each day, ALWAYS include an "**Extra Details:**" section with:
+                - After the activities for each day, include an "**Extra Details:**" section with:
                   - Info on current exhibits/events at cultural spots.
                   - A recommended article/book for context.
                   - A playlist or music suggestion that matches the vibe.
@@ -147,7 +131,7 @@ if st.button("Generate My Trip Ideas"):
                     response = client.chat.completions.create(
                         model="gpt-4o-mini",
                         messages=[
-                            {"role": "system", "content": "You are a creative travel planner who formats itineraries with Markdown and adds cultural context."},
+                            {"role": "system", "content": "You are a creative travel planner who formats itineraries with Markdown, ensuring every restaurant or activity includes a valid link."},
                             {"role": "user", "content": prompt},
                         ],
                         temperature=0.8
@@ -158,7 +142,6 @@ if st.button("Generate My Trip Ideas"):
                     raw_text = ""
 
         if raw_text:
-            raw_text = add_google_maps_links(raw_text)
             days = clean_to_days(raw_text)
             for day in days:
                 lines = day.splitlines()
@@ -168,3 +151,6 @@ if st.button("Generate My Trip Ideas"):
                 content = "\n".join(lines[1:])
                 with st.expander(day_title.strip()):
                     st.markdown(content)
+                    missing_links = validate_links(content)
+                    if missing_links:
+                        st.error("\n".join(missing_links))
