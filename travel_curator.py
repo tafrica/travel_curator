@@ -38,7 +38,6 @@ num_days = st.slider("How many days should I plan for?", 1, 7, 3)
 itinerary_text = ""
 
 def add_google_maps_links(text):
-    # Attempt to identify proper nouns or places and link them to Google Maps search
     def linkify_place(match):
         place = match.group(0)
         query = place.replace(" ", "+")
@@ -46,10 +45,12 @@ def add_google_maps_links(text):
     return re.sub(r'\b([A-Z][a-zA-Z]+(?: [A-Z][a-zA-Z]+)*)\b', linkify_place, text)
 
 def extract_places_for_day(day_text):
-    # Extract capitalized phrases as place candidates
     places = re.findall(r'\b([A-Z][a-zA-Z]+(?: [A-Z][a-zA-Z]+)*)\b', day_text)
     unique_places = list(dict.fromkeys(places))
     return unique_places
+
+def remove_non_latin1(text):
+    return text.encode('latin-1', 'ignore').decode('latin-1')
 
 # --- Button to Generate ---
 if st.button("Generate My Trip Ideas"):
@@ -83,19 +84,16 @@ if st.button("Generate My Trip Ideas"):
                 itinerary_text = response.choices[0].message.content
                 itinerary_text = add_google_maps_links(itinerary_text)
 
-                # Split itinerary into days based on headings
                 days = itinerary_text.split("Day ")
                 for i, day in enumerate(days):
                     if day.strip():
                         if i == 0 and "Day" not in day:
-                            # This is content before the first "Day"
                             st.markdown(day.strip())
                         else:
                             day_title = day.splitlines()[0]
                             day_content = "Day " + day
                             with st.expander(f"Day {day_title}"):
                                 st.markdown(day_content)
-                                # Extract places for Google Maps link
                                 places = extract_places_for_day(day_content)
                                 if places:
                                     query = urllib.parse.quote_plus(" ".join(places))
@@ -126,7 +124,8 @@ if itinerary_text:
     pdf.set_auto_page_break(auto=True, margin=15)
     pdf.set_font("Arial", size=12)
     for line in itinerary_text.splitlines():
-        pdf.multi_cell(0, 10, line)
+        safe_line = remove_non_latin1(line)
+        pdf.multi_cell(0, 10, safe_line)
     pdf.output(pdf_buffer)
     pdf_buffer.seek(0)
 
