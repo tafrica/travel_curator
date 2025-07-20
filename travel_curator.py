@@ -6,10 +6,10 @@ from datetime import date
 import re
 
 # --- CONFIG ---
-TEST_MODE = True  # Set to False to call the API
+# Toggle for test mode
+use_test_mode = st.sidebar.checkbox("Use Test Mode (No API calls)", value=True)
 
-# Load environment variables
-if not TEST_MODE:
+if not use_test_mode:
     load_dotenv()
     client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
@@ -55,42 +55,48 @@ def add_google_maps_links(text):
     linked_lines = [link_line(line) for line in lines]
     return "\n".join(linked_lines)
 
+def ensure_extra_details(day_text):
+    if "**Extra Details:**" not in day_text:
+        day_text += "\n\n**Extra Details:**\n- (No extra details provided by AI)"
+    return day_text
+
 def clean_to_days(text):
-    match = re.search(r'(### Day 1.*)', text, flags=re.DOTALL)
-    text = match.group(1) if match else text
-    days = re.split(r'(### Day \d+:)', text)
+    days = re.split(r'(###? Day \d+:)', text)
     combined = []
     for i in range(1, len(days), 2):
-        combined.append(days[i] + days[i + 1])
-    return combined if combined else [text]
+        content = days[i] + days[i + 1]
+        combined.append(ensure_extra_details(content))
+    if not combined:
+        combined = [ensure_extra_details(text)]
+    return combined
 
-# --- TEST DATA (used if TEST_MODE = True) ---
-SAMPLE_ITINERARY = """### Day 1: Arrival in Denver (2025-07-28)
+# --- TEST DATA ---
+SAMPLE_ITINERARY = """Day 1: Arrival in Denver (2025-07-28)
 ☀️ Morning: Arrive in Denver, check into your hotel.
-🌄 Afternoon: Visit the Denver Art Museum — currently featuring a Monet exhibition (July–August 2025).
+🌄 Afternoon: Visit the Denver Art Museum — currently featuring a Monet exhibition.
 🌙 Evening: Dinner at Linger — a rooftop restaurant with live jazz music.
 
-**Extra Details:**  
-- **Reading:** "The History of Denver's Art Scene" (Denver Post, June 2025).  
-- **Playlist:** "Summer Vibes in Colorado" on Spotify.  
+**Extra Details:**
+- **Reading:** "The History of Denver's Art Scene" (Denver Post).
+- **Playlist:** "Summer Vibes in Colorado" on Spotify.
 
-### Day 2: Exploring the Rockies
-☀️ Morning: Take a guided hike at Red Rocks Park.  
-🌄 Afternoon: Picnic near Bear Creek and visit the geological formations.  
-🌙 Evening: Attend a concert at Red Rocks Amphitheatre (check local events).  
+Day 2: Exploring the Rockies
+☀️ Morning: Guided hike at Red Rocks Park.
+🌄 Afternoon: Picnic near Bear Creek and visit geological formations.
+🌙 Evening: Concert at Red Rocks Amphitheatre (check schedule).
 
-**Extra Details:**  
-- **Reading:** "A Beginner’s Guide to Colorado’s Geology".  
-- **Music:** Live recording from past Red Rocks concerts.  
+**Extra Details:**
+- **Reading:** "Colorado's Natural Wonders".
+- **Music:** Iconic live sets recorded at Red Rocks.
 
-### Day 3: Aspen Adventure
-☀️ Morning: Drive to Aspen, stopping at Independence Pass for breathtaking views.  
-🌄 Afternoon: Explore the Aspen Art Museum and boutique shops.  
-🌙 Evening: Dinner at White House Tavern — known for its craft cocktails.  
+Day 3: Aspen Adventure
+☀️ Morning: Drive to Aspen via Independence Pass.
+🌄 Afternoon: Explore the Aspen Art Museum and boutiques.
+🌙 Evening: Dinner at White House Tavern — known for craft cocktails.
 
-**Extra Details:**  
-- **Reading:** "Aspen’s Transformation from Mining Town to Cultural Hub".  
-- **Playlist:** Jazz nights in Aspen (Spotify curated list).  
+**Extra Details:**
+- **Reading:** "Aspen’s Cultural Renaissance".
+- **Playlist:** Smooth Jazz Evenings in Aspen (Spotify).
 """
 
 # --- Button ---
@@ -98,7 +104,7 @@ if st.button("Generate My Trip Ideas"):
     if not ideal_trip or not destination:
         st.warning("Please enter both a vacation description and a destination.")
     else:
-        if TEST_MODE:
+        if use_test_mode:
             raw_text = SAMPLE_ITINERARY
         else:
             with st.spinner("Creating your personalized itinerary..."):
@@ -108,11 +114,11 @@ if st.button("Generate My Trip Ideas"):
                 Create a {num_days}-day itinerary for {destination}, starting {start_date}.
 
                 Formatting rules:
-                - Start the response directly with '### Day 1: ...' (no intro or conclusion).
-                - Use Markdown headings for each day (### Day X: ...).
+                - Start the response directly with 'Day 1: ...' (no intro or conclusion).
+                - Use Markdown headings for each day (Day X: ...).
                 - Use bullet points for morning, afternoon, and evening activities with emojis (☀️, 🌇, 🌙).
                 - Add clickable Markdown links for specific restaurants, tours, or places of interest (but NOT for generic words like Morning, Afternoon, Evening).
-                - For each day, include an "**Extra Details:**" section with:
+                - After the activities for each day, ALWAYS include an "**Extra Details:**" section with:
                   - Info on current exhibits/events at cultural spots.
                   - A recommended article/book for context.
                   - A playlist or music suggestion that matches the vibe.
