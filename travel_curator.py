@@ -5,6 +5,7 @@ from dotenv import load_dotenv
 from datetime import date
 import re
 import urllib.parse
+from io import BytesIO
 
 # --- CONFIG ---
 use_test_mode = st.sidebar.checkbox("Use Test Mode (No API calls)", value=True)
@@ -110,6 +111,8 @@ if st.checkbox("Show Prompt Preview"):
     st.code(build_prompt(), language="markdown")
 
 # --- Generate Itinerary ---
+itinerary_content = ""
+
 if st.button("Generate My Trip Ideas"):
     if not ideal_trip or not destination:
         st.warning("Please enter both a vacation description and a destination.")
@@ -133,6 +136,7 @@ if st.button("Generate My Trip Ideas"):
                     raw_text = ""
 
         if raw_text:
+            itinerary_content = ""
             days = clean_to_days(raw_text)
             for day in days:
                 lines = day.splitlines()
@@ -143,3 +147,15 @@ if st.button("Generate My Trip Ideas"):
                 content = auto_link_missing(content)
                 with st.expander(day_title.strip()):
                     st.markdown(content)
+                itinerary_content += f"<h2>{day_title.strip()}</h2>" + "\n" + content.replace("\n", "<br>") + "<br><br>"
+
+# --- Export to HTML ---
+if itinerary_content:
+    html_output = f"<html><head><meta charset='UTF-8'><title>Travel Itinerary</title></head><body><h1>Itinerary for {destination}</h1>{itinerary_content}</body></html>"
+    html_bytes = BytesIO(html_output.encode("utf-8"))
+    st.download_button(
+        label="📥 Download Itinerary as HTML",
+        data=html_bytes,
+        file_name="travel_itinerary.html",
+        mime="text/html"
+    )
