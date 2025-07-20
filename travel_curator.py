@@ -32,9 +32,14 @@ start_date = st.date_input("When will your trip start?", value=date.today())
 
 num_days = st.slider("How many days should I plan for?", 1, 7, 3)
 
+# Words we don't want to link
+STOPWORDS = {"Morning", "Afternoon", "Evening", "Day", "Arrival", "Lunch", "Dinner", "Breakfast"}
+
 def add_google_maps_links(text):
     def linkify_place(match):
         place = match.group(0)
+        if place in STOPWORDS:
+            return place  # Don't link generic terms
         query = place.replace(" ", "+")
         return f"[{place}](https://www.google.com/maps/search/?api=1&query={query})"
     return re.sub(r'\b([A-Z][a-zA-Z]+(?: [A-Z][a-zA-Z]+)*)\b', linkify_place, text)
@@ -64,7 +69,7 @@ if st.button("Generate My Trip Ideas"):
             - Start the response directly with '### Day 1: ...' (no intro or conclusion).
             - Use Markdown headings for each day (### Day X: ...).
             - Use bullet points for morning, afternoon, and evening activities with emojis (☀️, 🌇, 🌙).
-            - Add clickable Markdown links for restaurants, tours, or places of interest.
+            - Add clickable Markdown links for specific restaurants, tours, or places of interest (but NOT for generic words like Morning, Afternoon, Evening).
             - Include current events/exhibits where relevant.
             - Do not include any extra text like 'Copy or Download Your Itinerary'.
             """ 
