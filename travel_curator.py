@@ -32,22 +32,24 @@ start_date = st.date_input("When will your trip start?", value=date.today())
 
 num_days = st.slider("How many days should I plan for?", 1, 7, 3)
 
-STOPWORDS = {"Day", "Morning", "Afternoon", "Evening", "Arrival", "Breakfast", "Lunch", "Dinner"}
+STOPWORDS = {"Day", "Morning", "Afternoon", "Evening", "Arrival", "Breakfast", "Lunch", "Dinner", "Exploration"}
 
-def add_google_maps_links(text):
+def link_line(line):
+    # Skip lines that are headings or bullet labels
+    if line.strip().startswith("###") or line.strip().startswith(("☀️", "🌇", "🌙")):
+        return line
+    # Skip already linked words
     def replacer(match):
         word = match.group(0)
-        # Skip if it's already part of a Markdown link [Name](url)
-        if re.search(r'\[.*?\]\(.*?\)', text[max(0, match.start()-50):match.end()+50]):
-            return word
-        # Skip stopwords
         if word in STOPWORDS:
             return word
-        query = word.replace(" ", "+")
-        return f"[{word}](https://www.google.com/maps/search/?api=1&query={query})"
+        return f"[{word}](https://www.google.com/maps/search/?api=1&query={word.replace(' ', '+')})"
+    return re.sub(r'\b([A-Z][a-z]+(?: [A-Z][a-z]+)*)\b', replacer, line)
 
-    # Regex: one or more capitalized words (handles single or multi-word names)
-    return re.sub(r'\b([A-Z][a-z]+(?: [A-Z][a-z]+)*)\b', replacer, text)
+def add_google_maps_links(text):
+    lines = text.splitlines()
+    linked_lines = [link_line(line) for line in lines]
+    return "\n".join(linked_lines)
 
 def clean_to_days(text):
     match = re.search(r'(### Day 1.*)', text, flags=re.DOTALL)
