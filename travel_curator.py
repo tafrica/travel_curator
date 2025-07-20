@@ -7,7 +7,6 @@ import re
 import urllib.parse
 
 # --- CONFIG ---
-# Toggle for test mode
 use_test_mode = st.sidebar.checkbox("Use Test Mode (No API calls)", value=True)
 
 if not use_test_mode:
@@ -34,7 +33,6 @@ num_days = st.slider("How many days should I plan for?", 1, 7, 3)
 
 def ensure_extra_details(day_text):
     if "**Extra Details:**" not in day_text:
-        # Add default extra details
         day_text += "\n\n**Extra Details:**\n"
         day_text += "- [Explore the destination on Google](https://www.google.com/search?q=" + urllib.parse.quote(destination) + ")\n"
         day_text += "- [Listen to a themed playlist](https://open.spotify.com/search/" + urllib.parse.quote(destination) + ")"
@@ -51,15 +49,12 @@ def clean_to_days(text):
     return combined
 
 def auto_link_missing(content):
-    # Auto-link capitalized multi-word names without existing links
     def replacer(match):
         phrase = match.group(0)
-        # Skip if already linked or generic labels
         if "[" in phrase or "Day" in phrase or phrase in ["Morning", "Afternoon", "Evening"]:
             return phrase
         return f"[{phrase}](https://www.google.com/maps/search/?api=1&query={urllib.parse.quote(phrase)})"
 
-    # Only modify non-linked lines
     lines = content.split("\n")
     new_lines = []
     for line in lines:
@@ -77,18 +72,46 @@ SAMPLE_ITINERARY = """Day 1: Arrival in Denver (2025-07-28)
 **Extra Details:**
 - **Reading:** [The History of Denver's Art Scene](https://www.google.com/search?q=The+History+of+Denver's+Art+Scene).
 - **Playlist:** [Summer Vibes in Colorado](https://open.spotify.com/playlist/37i9dQZF1DX0h0QnOySuGd).
-
-Day 2: Exploring the Rockies
-☀️ Morning: Guided hike at [Red Rocks Park](https://www.redrocksonline.com/).
-🌄 Afternoon: Picnic near Bear Creek and visit geological formations.
-🌙 Evening: Concert at [Red Rocks Amphitheatre](https://www.redrocksonline.com/) (check schedule).
-
-**Extra Details:**
-- **Reading:** [Colorado's Natural Wonders](https://www.google.com/search?q=Colorado's+Natural+Wonders).
-- **Music:** [Iconic live sets recorded at Red Rocks](https://open.spotify.com/album/6hwSFL0DMuXkUn2XP2DRX3).
 """
 
-# --- Button ---
+# --- Build Prompt ---
+def build_prompt():
+    return f""" 
+    You are a creative travel planner. Your goal is to create itineraries that feel curated, personal, and full of cultural depth.
+
+    1. For every restaurant, activity, or attraction, ALWAYS include a clickable Markdown link to a reputable site or Google Maps.
+    2. After listing morning, afternoon, and evening activities for each day, ALWAYS include an "**Extra Details:**" section.
+       - This section should enrich the travel experience with:
+         - A link to a relevant article, blog, or resource for context.
+         - A playlist or music suggestion that matches the vibe (with a clickable link).
+         - If applicable, a current exhibit, seasonal highlight, or cultural insight.
+    3. If real-time info is not available, invent realistic, helpful details.
+    4. Never skip Extra Details or links — create them even if you have to search generically.
+
+    Destination: {destination}
+    Trip duration: {num_days} days starting {start_date}.
+    Traveler preferences: {ideal_trip}
+
+    Format the itinerary like this example:
+
+    Day 1: Arrival in Denver (2025-07-28)
+    ☀️ Morning: Arrive at [Denver International Airport](https://www.flydenver.com/), check into [The Crawford Hotel](https://thecrawfordhotel.com/).
+    🌄 Afternoon: Visit the [Denver Art Museum](https://denverartmuseum.org/) — see the Monet exhibition.
+    🌙 Evening: Dinner at [Linger](https://www.lingerdenver.com/) — rooftop dining with live jazz.
+
+    **Extra Details:**
+    - **Reading:** [The History of Denver’s Art Scene](https://www.google.com/search?q=History+of+Denver's+Art+Scene).
+    - **Playlist:** [Colorado Summer Vibes on Spotify](https://open.spotify.com/playlist/37i9dQZF1DX0h0QnOySuGd).
+    - **Cultural Highlight:** Evening jazz concerts on the rooftop.
+    """
+
+# --- Prompt Preview ---
+with st.expander("🔍 Preview the AI Prompt"):
+    st.markdown(f"```
+{build_prompt()}
+```")
+
+# --- Generate Itinerary ---
 if st.button("Generate My Trip Ideas"):
     if not ideal_trip or not destination:
         st.warning("Please enter both a vacation description and a destination.")
@@ -97,41 +120,12 @@ if st.button("Generate My Trip Ideas"):
             raw_text = SAMPLE_ITINERARY
         else:
             with st.spinner("Creating your personalized itinerary..."):
-                improved_prompt = f""" 
-                You are a creative travel planner. Your goal is to create itineraries that feel curated, personal, and full of cultural depth.
-
-                1. For every restaurant, activity, or attraction, ALWAYS include a clickable Markdown link to a reputable site or Google Maps.
-                2. After listing morning, afternoon, and evening activities for each day, ALWAYS include an "**Extra Details:**" section.
-                   - This section should enrich the travel experience with:
-                     - A link to a relevant article, blog, or resource for context.
-                     - A playlist or music suggestion that matches the vibe (with a clickable link).
-                     - If applicable, a current exhibit, seasonal highlight, or cultural insight.
-                3. If real-time info is not available, invent realistic, helpful details.
-                4. Never skip Extra Details or links — create them even if you have to search generically.
-
-                Destination: {destination}
-                Trip duration: {num_days} days starting {start_date}.
-                Traveler preferences: {ideal_trip}
-
-                Format the itinerary like this example:
-
-                Day 1: Arrival in Denver (2025-07-28)
-                ☀️ Morning: Arrive at [Denver International Airport](https://www.flydenver.com/), check into [The Crawford Hotel](https://thecrawfordhotel.com/).
-                🌄 Afternoon: Visit the [Denver Art Museum](https://denverartmuseum.org/) — see the Monet exhibition.
-                🌙 Evening: Dinner at [Linger](https://www.lingerdenver.com/) — rooftop dining with live jazz.
-
-                **Extra Details:**
-                - **Reading:** [The History of Denver’s Art Scene](https://www.google.com/search?q=History+of+Denver's+Art+Scene).
-                - **Playlist:** [Colorado Summer Vibes on Spotify](https://open.spotify.com/playlist/37i9dQZF1DX0h0QnOySuGd).
-                - **Cultural Highlight:** Evening jazz concerts on the rooftop.
-                """ 
-
                 try:
                     response = client.chat.completions.create(
                         model="gpt-4o-mini",
                         messages=[
                             {"role": "system", "content": "You are a travel planner who creates detailed itineraries with links and cultural extras."},
-                            {"role": "user", "content": improved_prompt},
+                            {"role": "user", "content": build_prompt()},
                         ],
                         temperature=0.8
                     )
