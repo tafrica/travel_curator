@@ -58,20 +58,20 @@ if st.button("Generate My Trip Ideas"):
             "{ideal_trip}"
             Create a {num_days}-day itinerary for {destination}, starting {start_date}.
 
-            For each day:
-            - Title each day clearly (Day 1, Day 2, etc.).
-            - Use emojis to highlight Morning (☀️), Afternoon (🌇), and Evening (🌙).
-            - Include at least one unique restaurant or dining experience per day.
-            - Add clickable markdown links for restaurants, tours, or places of interest.
-            - If there are museums or cultural venues, include current exhibits/events during the travel dates.
-            - Format the response with markdown so that each day is easy to separate.
+            Important formatting instructions:
+            - Use **only Markdown headings and bullet points** (no HTML tags).
+            - Title each day as a Markdown heading, e.g., '### Day 1: Arrival in Denver'.
+            - Use bullet points for morning, afternoon, and evening activities with emojis (☀️, 🌇, 🌙).
+            - Add clickable Markdown links for restaurants, tours, or places of interest.
+            - Do not use raw HTML like <details> or <summary> tags.
+            - Make the output easy to read in Markdown format.
             """
 
             try:
                 response = client.chat.completions.create(
                     model="gpt-4o-mini",
                     messages=[
-                        {"role": "system", "content": "You are a friendly and creative travel planner who formats itineraries with collapsible sections and emojis."},
+                        {"role": "system", "content": "You are a friendly and creative travel planner who formats itineraries using pure Markdown."},
                         {"role": "user", "content": prompt},
                     ],
                     temperature=0.7
@@ -79,21 +79,7 @@ if st.button("Generate My Trip Ideas"):
                 itinerary_text = response.choices[0].message.content
                 itinerary_text = add_google_maps_links(itinerary_text)
 
-                days = itinerary_text.split("Day ")
-                for i, day in enumerate(days):
-                    if day.strip():
-                        if i == 0 and "Day" not in day:
-                            st.markdown(day.strip())
-                        else:
-                            day_title = day.splitlines()[0]
-                            day_content = "Day " + day
-                            with st.expander(f"Day {day_title}"):
-                                st.markdown(day_content)
-                                places = extract_places_for_day(day_content)
-                                if places:
-                                    query = urllib.parse.quote_plus(" ".join(places))
-                                    maps_url = f"https://www.google.com/maps/search/{query}"
-                                    st.markdown(f"[View All on Google Maps]({maps_url})")
+                st.markdown(itinerary_text, unsafe_allow_html=False)
 
             except Exception as e:
                 st.error(f"Error generating itinerary: {e}")
