@@ -39,27 +39,15 @@ def add_google_maps_links(text):
         return f"[{place}](https://www.google.com/maps/search/?api=1&query={query})"
     return re.sub(r'\b([A-Z][a-zA-Z]+(?: [A-Z][a-zA-Z]+)*)\b', linkify_place, text)
 
-def clean_response(text):
-    # Remove unwanted lines and ensure it starts with ### Day 1
-    lines = text.splitlines()
-    cleaned_lines = []
-    for line in lines:
-        if "Copy or Download" in line or "Here’s" in line or "Sure!" in line:
-            continue
-        cleaned_lines.append(line)
-    cleaned_text = "\n".join(cleaned_lines).strip()
-    # Force start at ### Day 1
-    match = re.search(r'(### Day 1.*)', cleaned_text, flags=re.DOTALL)
-    if match:
-        cleaned_text = match.group(1)
-    return cleaned_text
-
-def split_by_days(text):
+def clean_to_days(text):
+    # Strip anything before ### Day 1 and split by day headings
+    match = re.search(r'(### Day 1.*)', text, flags=re.DOTALL)
+    text = match.group(1) if match else text
     days = re.split(r'(### Day \d+:)', text)
     combined = []
     for i in range(1, len(days), 2):
         combined.append(days[i] + days[i + 1])
-    return combined
+    return combined if combined else [text]
 
 # --- Button to Generate ---
 if st.button("Generate My Trip Ideas"):
@@ -67,18 +55,19 @@ if st.button("Generate My Trip Ideas"):
         st.warning("Please enter both a vacation description and a destination.")
     else:
         with st.spinner("Creating your personalized itinerary..."):
-            prompt = f"""
+            prompt = f""" 
             You are a travel expert. Based on the following user's preferences:
             "{ideal_trip}"
             Create a {num_days}-day itinerary for {destination}, starting {start_date}.
 
             Formatting rules:
-            - Start the response directly with '### Day 1: ...' (no intro text or pleasantries).
+            - Start the response directly with '### Day 1: ...' (no intro or conclusion).
             - Use Markdown headings for each day (### Day X: ...).
             - Use bullet points for morning, afternoon, and evening activities with emojis (☀️, 🌇, 🌙).
             - Add clickable Markdown links for restaurants, tours, or places of interest.
-            - Do not include any text like 'Copy or Download Your Itinerary' or a conclusion.
-            """
+            - Include current events/exhibits where relevant.
+            - Do not include any extra text like 'Copy or Download Your Itinerary'.
+            """ 
 
             try:
                 response = client.chat.completions.create(
@@ -90,19 +79,17 @@ if st.button("Generate My Trip Ideas"):
                     temperature=0.7
                 )
                 raw_text = response.choices[0].message.content
-                itinerary_text = clean_response(raw_text)
-                itinerary_text = add_google_maps_links(itinerary_text)
+                raw_text = add_google_maps_links(raw_text)
+                days = clean_to_days(raw_text)
 
-                days = split_by_days(itinerary_text)
-                if not days:
-                    st.markdown(itinerary_text)
-                else:
-                    for day in days:
-                        lines = day.splitlines()
-                        day_title = lines[0].replace("### ", "")
-                        content = "\n".join(lines[1:])
-                        with st.expander(day_title.strip()):
-                            st.markdown(content)
+                for day in days:
+                    lines = day.splitlines()
+                    if not lines:
+                        continue
+                    day_title = lines[0].replace("### ", "")
+                    content = "\n".join(lines[1:])
+                    with st.expander(day_title.strip()):
+                        st.markdown(content)
 
             except Exception as e:
                 st.error(f"Error generating itinerary: {e}")
