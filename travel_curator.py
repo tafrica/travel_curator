@@ -1,6 +1,11 @@
 import streamlit as st
-import openai
+from openai import OpenAI
 import os
+from dotenv import load_dotenv
+
+# Load environment variables
+load_dotenv()
+client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 st.set_page_config(page_title="Your Personalized Travel Curator", page_icon="🌍")
 
@@ -39,16 +44,15 @@ if st.button("Generate My Trip Ideas"):
             """
 
             try:
-                openai.api_key = os.getenv("OPENAI_API_KEY")
-                response = openai.ChatCompletion.create(
-                    model="gpt-4",
+                response = client.chat.completions.create(
+                    model="gpt-4o-mini",
                     messages=[
                         {"role": "system", "content": "You are a friendly and creative travel planner."},
                         {"role": "user", "content": prompt},
                     ],
                     temperature=0.7
                 )
-                itinerary = response['choices'][0]['message']['content']
+                itinerary = response.choices[0].message.content
                 st.markdown(itinerary)
             except Exception as e:
                 st.error(f"Error generating itinerary: {e}")
