@@ -3,8 +3,6 @@ from openai import OpenAI
 import os
 from dotenv import load_dotenv
 from datetime import date
-from io import BytesIO
-from fpdf import FPDF
 import re
 import urllib.parse
 
@@ -48,9 +46,6 @@ def extract_places_for_day(day_text):
     places = re.findall(r'\b([A-Z][a-zA-Z]+(?: [A-Z][a-zA-Z]+)*)\b', day_text)
     unique_places = list(dict.fromkeys(places))
     return unique_places
-
-def remove_non_latin1(text):
-    return text.encode('latin-1', 'ignore').decode('latin-1')
 
 # --- Button to Generate ---
 if st.button("Generate My Trip Ideas"):
@@ -115,23 +110,4 @@ if itinerary_text:
         data=itinerary_text,
         file_name="itinerary.txt",
         mime="text/plain",
-    )
-
-    # Download as PDF
-    pdf_buffer = BytesIO()
-    pdf = FPDF()
-    pdf.add_page()
-    pdf.set_auto_page_break(auto=True, margin=15)
-    pdf.set_font("Arial", size=12)
-    for line in itinerary_text.splitlines():
-        safe_line = remove_non_latin1(line)
-        pdf.multi_cell(0, 10, safe_line)
-    pdf.output(pdf_buffer)
-    pdf_buffer.seek(0)
-
-    st.download_button(
-        label="Download as PDF",
-        data=pdf_buffer,
-        file_name="itinerary.pdf",
-        mime="application/pdf",
     )
