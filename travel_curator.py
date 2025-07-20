@@ -39,8 +39,22 @@ def add_google_maps_links(text):
         return f"[{place}](https://www.google.com/maps/search/?api=1&query={query})"
     return re.sub(r'\b([A-Z][a-zA-Z]+(?: [A-Z][a-zA-Z]+)*)\b', linkify_place, text)
 
+def clean_response(text):
+    # Remove unwanted lines and ensure it starts with ### Day 1
+    lines = text.splitlines()
+    cleaned_lines = []
+    for line in lines:
+        if "Copy or Download" in line or "Here’s" in line or "Sure!" in line:
+            continue
+        cleaned_lines.append(line)
+    cleaned_text = "\n".join(cleaned_lines).strip()
+    # Force start at ### Day 1
+    match = re.search(r'(### Day 1.*)', cleaned_text, flags=re.DOTALL)
+    if match:
+        cleaned_text = match.group(1)
+    return cleaned_text
+
 def split_by_days(text):
-    # Split on '### Day' to isolate each day
     days = re.split(r'(### Day \d+:)', text)
     combined = []
     for i in range(1, len(days), 2):
@@ -58,13 +72,12 @@ if st.button("Generate My Trip Ideas"):
             "{ideal_trip}"
             Create a {num_days}-day itinerary for {destination}, starting {start_date}.
 
-            Important formatting instructions:
-            - Begin the itinerary immediately with '### Day 1: ...' (no introduction or extra text).
-            - Use **only Markdown headings and bullet points** (no HTML tags).
-            - Title each day as a Markdown heading, e.g., '### Day 1: Arrival in Denver'.
+            Formatting rules:
+            - Start the response directly with '### Day 1: ...' (no intro text or pleasantries).
+            - Use Markdown headings for each day (### Day X: ...).
             - Use bullet points for morning, afternoon, and evening activities with emojis (☀️, 🌇, 🌙).
             - Add clickable Markdown links for restaurants, tours, or places of interest.
-            - Do not add text like 'Copy or Download' or any conclusion text.
+            - Do not include any text like 'Copy or Download Your Itinerary' or a conclusion.
             """
 
             try:
@@ -76,7 +89,8 @@ if st.button("Generate My Trip Ideas"):
                     ],
                     temperature=0.7
                 )
-                itinerary_text = response.choices[0].message.content
+                raw_text = response.choices[0].message.content
+                itinerary_text = clean_response(raw_text)
                 itinerary_text = add_google_maps_links(itinerary_text)
 
                 days = split_by_days(itinerary_text)
