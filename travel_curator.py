@@ -4,7 +4,6 @@ import os
 from dotenv import load_dotenv
 from datetime import date
 import re
-import urllib.parse
 
 # Load environment variables
 load_dotenv()
@@ -42,11 +41,6 @@ def add_google_maps_links(text):
         return f"[{place}](https://www.google.com/maps/search/?api=1&query={query})"
     return re.sub(r'\b([A-Z][a-zA-Z]+(?: [A-Z][a-zA-Z]+)*)\b', linkify_place, text)
 
-def extract_places_for_day(day_text):
-    places = re.findall(r'\b([A-Z][a-zA-Z]+(?: [A-Z][a-zA-Z]+)*)\b', day_text)
-    unique_places = list(dict.fromkeys(places))
-    return unique_places
-
 # --- Button to Generate ---
 if st.button("Generate My Trip Ideas"):
     if not ideal_trip or not destination:
@@ -83,17 +77,3 @@ if st.button("Generate My Trip Ideas"):
 
             except Exception as e:
                 st.error(f"Error generating itinerary: {e}")
-
-# --- Copy & Download ---
-if itinerary_text:
-    st.write("### Copy or Download Your Itinerary")
-    st.code(itinerary_text, language="markdown")
-    st.button("Copy Itinerary", on_click=lambda: st.write("Select and copy the text above."))
-
-    # Download as text
-    st.download_button(
-        label="Download as Text",
-        data=itinerary_text,
-        file_name="itinerary.txt",
-        mime="text/plain",
-    )
