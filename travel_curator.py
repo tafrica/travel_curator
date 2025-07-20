@@ -61,7 +61,7 @@ def ensure_extra_details(day_text):
     return day_text
 
 def clean_to_days(text):
-    days = re.split(r'(###? Day \d+:)', text)
+    days = re.split(r'(?:###?\s*)?(Day \d+:)', text)
     combined = []
     for i in range(1, len(days), 2):
         content = days[i] + days[i + 1]
@@ -97,6 +97,24 @@ Day 3: Aspen Adventure
 **Extra Details:**
 - **Reading:** "Aspen’s Cultural Renaissance".
 - **Playlist:** Smooth Jazz Evenings in Aspen (Spotify).
+
+Day 4: Outdoor Thrills
+☀️ Morning: Go mountain biking in Snowmass Village.
+🌄 Afternoon: Relax at Glenwood Hot Springs.
+🌙 Evening: Dine at Cache Cache — renowned for French cuisine.
+
+**Extra Details:**
+- **Reading:** "Colorado's Best Hot Springs".
+- **Playlist:** Adventure Beats on Spotify.
+
+Day 5: Farewell Day
+☀️ Morning: Brunch at Snooze, an A.M. Eatery.
+🌄 Afternoon: Last-minute shopping at Larimer Square.
+🌙 Evening: Sunset walk at City Park before heading home.
+
+**Extra Details:**
+- **Reading:** "Denver's Top Brunch Spots".
+- **Playlist:** Relaxing Acoustic Mix.
 """
 
 # --- Button ---
