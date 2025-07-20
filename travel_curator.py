@@ -64,6 +64,22 @@ def auto_link_missing(content):
         new_lines.append(line)
     return "\n".join(new_lines)
 
+def regenerate_extra_details(day_title, day_content):
+    if use_test_mode:
+        return "**Extra Details (Updated):**\n- [Sample Article](https://www.google.com)\n- [Sample Playlist](https://open.spotify.com)"
+    else:
+        try:
+            prompt = f"Generate 2 cultural or music recommendations for {day_title} in {destination}. Return them as markdown list with links."
+            response = client.chat.completions.create(
+                model="gpt-4o-mini",
+                messages=[{"role": "system", "content": "You add cultural and music details."},
+                          {"role": "user", "content": prompt}],
+                temperature=0.7
+            )
+            return response.choices[0].message.content.strip()
+        except Exception as e:
+            return f"**Extra Details:** (Failed to regenerate: {e})"
+
 # --- TEST DATA ---
 SAMPLE_ITINERARY = """Day 1: Arrival in Denver (2025-07-28)
 ☀️ Morning: Arrive in [Denver International Airport](https://www.flydenver.com/), check into your hotel.
@@ -92,18 +108,6 @@ You are a creative travel planner. Your goal is to create itineraries that feel 
 Destination: {destination}
 Trip duration: {num_days} days starting {start_date}.
 Traveler preferences: {ideal_trip}
-
-Format the itinerary like this example:
-
-Day 1: Arrival in Denver (2025-07-28)
-☀️ Morning: Arrive at [Denver International Airport](https://www.flydenver.com/), check into [The Crawford Hotel](https://thecrawfordhotel.com/).
-🌄 Afternoon: Visit the [Denver Art Museum](https://denverartmuseum.org/) — see the Monet exhibition.
-🌙 Evening: Dinner at [Linger](https://www.lingerdenver.com/) — rooftop dining with live jazz.
-
-**Extra Details:**
-- **Reading:** [The History of Denver’s Art Scene](https://www.google.com/search?q=History+of+Denver's+Art+Scene).
-- **Playlist:** [Colorado Summer Vibes on Spotify](https://open.spotify.com/playlist/37i9dQZF1DX0h0QnOySuGd).
-- **Cultural Highlight:** Evening jazz concerts on the rooftop.
 """
 
 # --- Prompt Preview Toggle ---
@@ -145,8 +149,22 @@ if st.button("Generate My Trip Ideas"):
                 day_title = lines[0]
                 content = "\n".join(lines[1:])
                 content = auto_link_missing(content)
+
+                # Split out extra details
+                if "**Extra Details:**" in content:
+                    main_content, extra = content.split("**Extra Details:**", 1)
+                    extra_details = "**Extra Details:**" + extra
+                else:
+                    main_content = content
+                    extra_details = "**Extra Details:** (none)"
+
                 with st.expander(day_title.strip()):
-                    st.markdown(content)
+                    st.markdown(main_content)
+                    st.markdown(extra_details)
+                    if st.button(f"🔄 Regenerate Extra Details for {day_title}"):
+                        new_extra = regenerate_extra_details(day_title, content)
+                        st.markdown(new_extra)
+
                 itinerary_content += f"<h2>{day_title.strip()}</h2>" + "\n" + content.replace("\n", "<br>") + "<br><br>"
 
 # --- Export to HTML ---
