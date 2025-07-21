@@ -9,7 +9,6 @@ from io import BytesIO
 
 # --- CONFIG ---
 use_test_mode = st.sidebar.checkbox("Use Test Mode (No API calls)", value=True)
-inspiration_mode = st.sidebar.checkbox("Enable Inspiration Mode (show alternatives)", value=False)
 
 if not use_test_mode:
     load_dotenv()
@@ -84,22 +83,6 @@ def regenerate_extra_details(day_index, day_title):
         except Exception as e:
             st.session_state.itinerary_days[day_index]["extra"] = f"**Extra Details:** (Failed to regenerate: {e})"
 
-def add_inspiration_ideas(content, day_title):
-    if use_test_mode:
-        return content + "\n\n**Inspiration Mode:**\n- Alternative 1 for " + day_title + "\n- Alternative 2 for " + day_title
-    else:
-        try:
-            prompt = f"Suggest 2 alternative activities each for morning, afternoon, and evening of {day_title} in {destination}. Return in markdown list format."
-            response = client.chat.completions.create(
-                model="gpt-4o-mini",
-                messages=[{"role": "system", "content": "You provide alternative travel activity ideas."},
-                          {"role": "user", "content": prompt}],
-                temperature=0.8
-            )
-            return content + "\n\n**Inspiration Mode:**\n" + response.choices[0].message.content.strip()
-        except Exception as e:
-            return content + f"\n\n**Inspiration Mode:** (Failed to load: {e})"
-
 # --- TEST DATA ---
 SAMPLE_ITINERARY = """Day 1: Arrival in Denver (2025-07-28)
 ☀️ Morning: Arrive in [Denver International Airport](https://www.flydenver.com/), check into your hotel.
@@ -112,7 +95,7 @@ SAMPLE_ITINERARY = """Day 1: Arrival in Denver (2025-07-28)
 """
 
 def build_prompt():
-    base_prompt = f"""
+    return f"""
 You are a creative travel planner. Your goal is to create itineraries that feel curated, personal, and full of cultural depth.
 
 1. For every restaurant, activity, or attraction, ALWAYS include a clickable Markdown link to a reputable site or Google Maps.
@@ -128,9 +111,6 @@ Destination: {destination}
 Trip duration: {num_days} days starting {start_date}.
 Traveler preferences: {ideal_trip}
 """
-    if inspiration_mode:
-        base_prompt += "\n5. Provide 2-3 alternative activities for each time slot (Morning, Afternoon, Evening) as an 'Inspiration Mode' list.\n"
-    return base_prompt
 
 if st.checkbox("Show Prompt Preview"):
     st.code(build_prompt(), language="markdown")
@@ -168,9 +148,6 @@ if st.button("Generate My Trip Ideas"):
                 day_title = lines[0]
                 content = "\n".join(lines[1:])
                 content = auto_link_missing(content)
-
-                if inspiration_mode:
-                    content = add_inspiration_ideas(content, day_title)
 
                 if "**Extra Details:**" in content:
                     main_content, extra = content.split("**Extra Details:**", 1)
