@@ -18,7 +18,10 @@ st.set_page_config(page_title="Your Personalized Travel Curator", page_icon="�
 
 st.title("🌍 Your Personalized Travel Curator")
 
-# --- User Inputs ---
+# Initialize session state
+if "itinerary_days" not in st.session_state:
+    st.session_state.itinerary_days = []
+
 ideal_trip = st.text_area(
     "Describe your ideal vacation or a past trip you loved:",
     placeholder="Example: I loved my hiking trip in Patagonia with local food and boutique hotels.",
@@ -64,9 +67,9 @@ def auto_link_missing(content):
         new_lines.append(line)
     return "\n".join(new_lines)
 
-def regenerate_extra_details(day_title, day_content):
+def regenerate_extra_details(day_index, day_title, day_content):
     if use_test_mode:
-        return "**Extra Details (Updated):**\n- [Sample Article](https://www.google.com)\n- [Sample Playlist](https://open.spotify.com)"
+        st.session_state.itinerary_days[day_index]["extra"] = "**Extra Details (Updated):**\n- [Sample Article](https://www.google.com)\n- [Sample Playlist](https://open.spotify.com)"
     else:
         try:
             prompt = f"Generate 2 cultural or music recommendations for {day_title} in {destination}. Return them as markdown list with links."
@@ -76,9 +79,9 @@ def regenerate_extra_details(day_title, day_content):
                           {"role": "user", "content": prompt}],
                 temperature=0.7
             )
-            return response.choices[0].message.content.strip()
+            st.session_state.itinerary_days[day_index]["extra"] = response.choices[0].message.content.strip()
         except Exception as e:
-            return f"**Extra Details:** (Failed to regenerate: {e})"
+            st.session_state.itinerary_days[day_index]["extra"] = f"**Extra Details:** (Failed to regenerate: {e})"
 
 # --- TEST DATA ---
 SAMPLE_ITINERARY = """Day 1: Arrival in Denver (2025-07-28)
@@ -91,9 +94,8 @@ SAMPLE_ITINERARY = """Day 1: Arrival in Denver (2025-07-28)
 - **Playlist:** [Summer Vibes in Colorado](https://open.spotify.com/playlist/37i9dQZF1DX0h0QnOySuGd).
 """
 
-# --- Build Prompt ---
 def build_prompt():
-    return f""" 
+    return f"""
 You are a creative travel planner. Your goal is to create itineraries that feel curated, personal, and full of cultural depth.
 
 1. For every restaurant, activity, or attraction, ALWAYS include a clickable Markdown link to a reputable site or Google Maps.
@@ -110,7 +112,6 @@ Trip duration: {num_days} days starting {start_date}.
 Traveler preferences: {ideal_trip}
 """
 
-# --- Prompt Preview Toggle ---
 if st.checkbox("Show Prompt Preview"):
     st.code(build_prompt(), language="markdown")
 
@@ -140,7 +141,7 @@ if st.button("Generate My Trip Ideas"):
                     raw_text = ""
 
         if raw_text:
-            itinerary_content = ""
+            st.session_state.itinerary_days = []
             days = clean_to_days(raw_text)
             for day in days:
                 lines = day.splitlines()
@@ -150,7 +151,6 @@ if st.button("Generate My Trip Ideas"):
                 content = "\n".join(lines[1:])
                 content = auto_link_missing(content)
 
-                # Split out extra details
                 if "**Extra Details:**" in content:
                     main_content, extra = content.split("**Extra Details:**", 1)
                     extra_details = "**Extra Details:**" + extra
@@ -158,17 +158,25 @@ if st.button("Generate My Trip Ideas"):
                     main_content = content
                     extra_details = "**Extra Details:** (none)"
 
-                with st.expander(day_title.strip()):
-                    st.markdown(main_content)
-                    st.markdown(extra_details)
-                    if st.button(f"🔄 Regenerate Extra Details for {day_title}"):
-                        new_extra = regenerate_extra_details(day_title, content)
-                        st.markdown(new_extra)
+                st.session_state.itinerary_days.append({
+                    "title": day_title.strip(),
+                    "main": main_content,
+                    "extra": extra_details
+                })
 
-                itinerary_content += f"<h2>{day_title.strip()}</h2>" + "\n" + content.replace("\n", "<br>") + "<br><br>"
+# --- Display Itinerary with Regeneration ---
+if st.session_state.itinerary_days:
+    for i, day_data in enumerate(st.session_state.itinerary_days):
+        with st.expander(day_data["title"]):
+            st.markdown(day_data["main"])
+            st.markdown(day_data["extra"])
+            if st.button(f"🔄 Regenerate Extra Details for {day_data['title']}", key=f"regen_{i}"):
+                regenerate_extra_details(i, day_data["title"], day_data["main"])
 
-# --- Export to HTML ---
-if itinerary_content:
+    # --- Export to HTML ---
+    itinerary_content = ""
+    for day_data in st.session_state.itinerary_days:
+        itinerary_content += f"<h2>{day_data['title']}</h2><p>{day_data['main'].replace('\n', '<br>')}</p><p>{day_data['extra'].replace('\n', '<br>')}</p><br><br>"
     html_output = f"<html><head><meta charset='UTF-8'><title>Travel Itinerary</title></head><body><h1>Itinerary for {destination}</h1>{itinerary_content}</body></html>"
     html_bytes = BytesIO(html_output.encode("utf-8"))
     st.download_button(
