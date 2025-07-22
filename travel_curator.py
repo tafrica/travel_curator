@@ -7,12 +7,14 @@ openai.api_key = st.secrets.get("OPENAI_API_KEY", "")
 
 st.title("AI Travel Curator")
 
+# Main inputs
+destination = st.text_input("Enter your destination:")
+start_date = st.date_input("Trip start date:")
+days = st.number_input("Number of days:", min_value=1, max_value=30, value=1)
+vacation_description = st.text_area("Tell us about a vacation you loved (to help personalize your trip):")
+
 # Sidebar options
-st.sidebar.header("Trip Settings")
-destination = st.sidebar.text_input("Enter your destination:")
-start_date = st.sidebar.date_input("Trip start date:")
-days = st.sidebar.number_input("Number of days:", min_value=1, max_value=30, value=1)
-vacation_description = st.sidebar.text_area("Describe a vacation you enjoyed (optional):")
+st.sidebar.header("Options")
 test_mode = st.sidebar.checkbox("Run in test mode (no API calls)", value=False)
 show_prompt = st.sidebar.checkbox("Show final prompt")
 
@@ -32,7 +34,6 @@ def build_prompt(destination, days, search_context, vacation_description):
     {search_context}
     Provide morning, afternoon, and evening plans with a mix of attractions, dining, and activities.
     """
-
 
 def generate_itinerary(destination, days):
     system_prompt = """You are a travel planning assistant. Use the provided search results
