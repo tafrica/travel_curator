@@ -1,9 +1,10 @@
 import streamlit as st
-import openai
+from openai import OpenAI
 import re
 from travel_tools import search_activities
 
-openai.api_key = st.secrets.get("OPENAI_API_KEY", "")
+# Initialize OpenAI client
+client = OpenAI(api_key=st.secrets.get("OPENAI_API_KEY", ""))
 
 st.title("AI Travel Curator")
 
@@ -51,7 +52,7 @@ def generate_itinerary(destination, days):
     if test_mode:
         return "**TEST MODE:** No API call made.\n\nSample Itinerary:\n- Morning: Visit a landmark.\n- Afternoon: Explore a museum.\n- Evening: Enjoy local cuisine."
 
-    response = openai.ChatCompletion.create(
+    response = client.chat.completions.create(
         model="gpt-4o",
         messages=[
             {"role": "system", "content": system_prompt},
@@ -61,7 +62,7 @@ def generate_itinerary(destination, days):
         max_tokens=1200,
     )
 
-    raw_output = response['choices'][0]['message']['content']
+    raw_output = response.choices[0].message.content
     return format_links(raw_output)
 
 if st.button("Generate My Trip Ideas"):
