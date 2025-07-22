@@ -45,10 +45,13 @@ def generate_itinerary(destination, days):
     search_context = "\n".join(search_results) if search_results else "No data found."
     user_prompt = build_prompt(destination, days, search_context, vacation_description)
 
+    # Display prompt in sidebar if requested
     if show_prompt:
         st.sidebar.subheader("Prompt Preview")
-        st.sidebar.text_area("System + User Prompt", system_prompt + "\n\n" + user_prompt, height=300)
+        st.sidebar.text_area("System Prompt", system_prompt, height=150)
+        st.sidebar.text_area("User Prompt", user_prompt, height=200)
 
+    # Test mode returns a sample itinerary without API calls
     if test_mode:
         return "**TEST MODE:** No API call made.\n\nSample Itinerary:\n- Morning: Visit a landmark.\n- Afternoon: Explore a museum.\n- Evening: Enjoy local cuisine."
 
