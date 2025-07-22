@@ -31,31 +31,21 @@ Evening:
 # Search Helpers
 # ---------------------------
 def search_link(query):
-    """
-    Simulated link search (replace with your actual search logic).
-    Returns the first link found, or None.
-    """
-    # Placeholder for integration with a search API
+    """Simulated link search (replace with your actual search logic)."""
     return None
 
 def get_activity_link(name, location):
-    """
-    Try to find a reliable link for the given activity/restaurant.
-    """
     if not name:
         return "No link found"
 
-    # Try official site first
     link = search_link(f"{name} official site {location}")
     if link:
         return link
 
-    # Try CN Traveler or TripAdvisor
     link = search_link(f"{name} site:cntraveler.com OR site:tripadvisor.com {location}")
     if link:
         return link
 
-    # Try generic best-of search
     link = search_link(f"best {name} {location}")
     return link or "No link found"
 
@@ -63,9 +53,6 @@ def get_activity_link(name, location):
 # Tone Polishing
 # ---------------------------
 def polish_tone(text):
-    """
-    Adjusts tone to be warm and local-friendly.
-    """
     replacements = {
         "Visit": "Head over to",
         "Explore": "Wander through",
@@ -81,9 +68,6 @@ def polish_tone(text):
 # Itinerary Generation
 # ---------------------------
 def generate_itinerary(destination, preferences):
-    """
-    Generate a day itinerary for a destination with user preferences.
-    """
     user_prompt = (
         f"{TRAVEL_CURATOR_PROMPT}\n"
         f"Destination: {destination}\n"
@@ -98,15 +82,11 @@ def generate_itinerary(destination, preferences):
     )
 
     raw_itinerary = response.choices[0].message.content
-
-    # Optional: Polishing step for tone
     polished_itinerary = polish_tone(raw_itinerary)
 
-    # OPTIONAL: Link correction step
     final_lines = []
     for line in polished_itinerary.split("\n"):
         if line.strip() and ("http" not in line or "No link found" in line):
-            # Extract a rough activity name
             activity_name = line.split(":")[0].strip("-• ")
             if activity_name and destination:
                 link = get_activity_link(activity_name, destination)
