@@ -1,4 +1,6 @@
-import openai
+from openai import OpenAI
+
+client = OpenAI()
 
 # ---------------------------
 # Travel Curator Prompt
@@ -89,13 +91,13 @@ def generate_itinerary(destination, preferences):
         f"Create a one-day itinerary."
     )
 
-    response = openai.ChatCompletion.create(
+    response = client.chat.completions.create(
         model="gpt-4o",
         messages=[{"role": "system", "content": user_prompt}],
         temperature=0.7,
     )
 
-    raw_itinerary = response.choices[0].message["content"]
+    raw_itinerary = response.choices[0].message.content
 
     # Optional: Polishing step for tone
     polished_itinerary = polish_tone(raw_itinerary)
