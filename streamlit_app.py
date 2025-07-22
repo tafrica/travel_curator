@@ -1,6 +1,8 @@
 import streamlit as st
 from travel_curator import generate_itinerary
 
+st.write("DEBUG: Running restored version!")
+
 st.set_page_config(page_title="Travel Curator", page_icon="🌍", layout="centered")
 
 st.title("🌍 Travel Curator")
