@@ -31,29 +31,32 @@ def format_links(text):
 def build_prompt(destination, days, search_context, vacation_description):
     return f"""Create a travel itinerary for {destination} starting on {start_date} for {days} days.
     Tailor recommendations to the type of experiences the user enjoyed: {vacation_description}.
-    Use the following verified resources for inspiration:
+    Use ONLY the verified resources provided here:
     {search_context}
-    Provide morning, afternoon, and evening plans with a mix of attractions, dining, and activities.
+    
+    **Rules for Output:**
+    - Each activity must include a clickable markdown link to a real URL from the search results.
+    - If no link is available for an activity, write '(No link found)'.
+    - Do not use placeholder text like '(source.)'.
+    - Organize activities into Morning, Afternoon, and Evening for each day.
+    - Do not invent details or attractions not mentioned in the verified resources.
     """
 
 def generate_itinerary(destination, days):
-    system_prompt = """You are a travel planning assistant. Use the provided search results
-    and user preferences to create a personalized itinerary. 
-    Always cite sources with URLs. Avoid inventing details."""
+    system_prompt = """You are a travel planning assistant. Use only the provided search results and user preferences
+    to create a personalized itinerary. Always provide real links for each activity. If a link does not exist, clearly indicate '(No link found)'. Avoid invented content."""
 
     search_results = search_activities(destination)
     search_context = "\n".join(search_results) if search_results else "No data found."
     user_prompt = build_prompt(destination, days, search_context, vacation_description)
 
-    # Display prompt in sidebar if requested
     if show_prompt:
         st.sidebar.subheader("Prompt Preview")
         st.sidebar.text_area("System Prompt", system_prompt, height=150)
-        st.sidebar.text_area("User Prompt", user_prompt, height=200)
+        st.sidebar.text_area("User Prompt", user_prompt, height=250)
 
-    # Test mode returns a sample itinerary without API calls
     if test_mode:
-        return "**TEST MODE:** No API call made.\n\nSample Itinerary:\n- Morning: Visit a landmark.\n- Afternoon: Explore a museum.\n- Evening: Enjoy local cuisine."
+        return "**TEST MODE:** No API call made.\n\nSample Itinerary:\n- Morning: Visit a landmark. (No link found)\n- Afternoon: Explore a museum. (No link found)\n- Evening: Enjoy local cuisine. (No link found)"
 
     response = client.chat.completions.create(
         model="gpt-4o",
@@ -61,7 +64,7 @@ def generate_itinerary(destination, days):
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": user_prompt},
         ],
-        temperature=0.5,
+        temperature=0.3,
         max_tokens=1200,
     )
 
