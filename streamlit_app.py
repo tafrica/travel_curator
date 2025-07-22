@@ -12,10 +12,11 @@ preferences = st.text_area("Preferences", "See as many cats as possible, enjoy g
 if st.button("Generate Itinerary"):
     if destination.strip():
         st.write("### Your Curated Itinerary")
-        try:
-            itinerary = generate_itinerary(destination.strip(), preferences.strip())
-            st.write(itinerary)
-        except Exception as e:
-            st.error(f"An error occurred: {e}")
+        with st.spinner("Generating your itinerary..."):
+            try:
+                itinerary = generate_itinerary(destination.strip(), preferences.strip())
+                st.write(itinerary)
+            except Exception as e:
+                st.error(f"An error occurred: {e}")
     else:
         st.warning("Please enter a destination.")
