@@ -1,192 +1,89 @@
 import streamlit as st
-from openai import OpenAI
-import os
-from dotenv import load_dotenv
-from datetime import date
+import openai
 import re
-import urllib.parse
-from io import BytesIO
+from travel_tools import search_activities  # Replace with your actual search implementation
 
-# --- CONFIG ---
-use_test_mode = st.sidebar.checkbox("Use Test Mode (No API calls)", value=True)
+openai.api_key = st.secrets["OPENAI_API_KEY"]
 
-if not use_test_mode:
-    load_dotenv()
-    client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+st.title("AI Travel Curator")
 
-st.set_page_config(page_title="Your Personalized Travel Curator", page_icon="🌍")
+destination = st.text_input("Enter your destination:")
+days = st.number_input("Number of days:", min_value=1, max_value=30, value=1)
 
-st.title("🌍 Your Personalized Travel Curator")
+def extract_urls(text):
+    # Extracts real URLs from a given text
+    return re.findall(r'(https?://\S+)', text)
 
-# Initialize session state
-if "itinerary_days" not in st.session_state:
-    st.session_state.itinerary_days = []
+def format_links(text):
+    # Convert any found URLs to clickable markdown links
+    urls = extract_urls(text)
+    for url in urls:
+        text = text.replace(url, f"[Link]({url})")
+    return text
 
-ideal_trip = st.text_area(
-    "Describe your ideal vacation or a past trip you loved:",
-    placeholder="Example: I loved my hiking trip in Patagonia with local food and boutique hotels.",
-)
+def generate_itinerary(destination, days):
+    system_prompt = f"""
+    You are a precise and reliable travel curator.
 
-destination = st.text_input(
-    "Where are you thinking of going next?",
-    placeholder="Example: Denver and Aspen, Colorado",
-)
+    Your task is to create a travel itinerary based only on verified sources. 
+    Do not fabricate details, cultural phenomena, or events. Never create fake article references.
 
-start_date = st.date_input("When will your trip start?", value=date.today())
-num_days = st.slider("How many days should I plan for?", 1, 7, 3)
+    **Search priority:**
+    1. Tripadvisor and Viator (activities, attractions, tours).
+    2. Reputable travel blogs, travel magazines, and local event calendars.
+    3. If none of the above sources return relevant information, clearly say: 
+       "No specific recommendations found from trusted sources."
 
-def ensure_extra_details(day_text):
-    if "**Extra Details:**" not in day_text:
-        day_text += "\n\n**Extra Details:**\n"
-        day_text += "- [Explore the destination on Google](https://www.google.com/search?q=" + urllib.parse.quote(destination) + ")\n"
-        day_text += "- [Listen to a themed playlist](https://open.spotify.com/search/" + urllib.parse.quote(destination) + ")"
-    return day_text
+    **Output Requirements:**
+    - For every activity, **include a valid clickable URL** to the source (e.g., Tripadvisor or blog link).
+    - If no link is available, write: “(No link found)” — do not omit it.
+    - Organize the results as a day plan (Morning, Afternoon, Evening).
+    - Use only information from the sources retrieved; never invent restaurants, attractions, or descriptions.
+    - If the search returns general categories (e.g., “top beaches”), provide the real names and links from those results.
+    - Avoid adding any unverified "fun facts" or embellishments.
 
-def clean_to_days(text):
-    days = re.split(r'(?:###?\s*)?(Day \d+:)', text)
-    combined = []
-    for i in range(1, len(days), 2):
-        content = days[i] + days[i + 1]
-        combined.append(ensure_extra_details(content))
-    if not combined:
-        combined = [ensure_extra_details(text)]
-    return combined
+    **Steps to Follow:**
+    1. Search Tripadvisor and Viator for {destination}.
+    2. If not enough results, search for recent travel blogs, travel magazines, or local event calendars.
+    3. Extract 5–7 recommended activities or places, with URLs.
+    4. Build a concise itinerary (Morning/Afternoon/Evening), each with a brief description (1-2 sentences) and a link.
+    5. Return results exactly as requested — do not add content beyond verified info.
 
-def auto_link_missing(content):
-    def replacer(match):
-        phrase = match.group(0)
-        if "[" in phrase or "Day" in phrase or phrase in ["Morning", "Afternoon", "Evening"]:
-            return phrase
-        return f"[{phrase}](https://www.google.com/maps/search/?api=1&query={urllib.parse.quote(phrase)})"
+    **Important Rules:**
+    - Never make up sources or details.
+    - Always show at least one link per activity or explicitly say “No link found.”
+    - If a section of the day has no results, write: “No verified recommendations found for [Morning/Afternoon/Evening].”
+    """
 
-    lines = content.split("\n")
-    new_lines = []
-    for line in lines:
-        if line.startswith(("☀️", "🌇", "🌙")) and "[" not in line:
-            line = re.sub(r'([A-Z][a-z]+(?: [A-Z][a-z]+)+)', replacer, line)
-        new_lines.append(line)
-    return "\n".join(new_lines)
+    search_results = search_activities(destination)
+    search_context = "\n".join(search_results) if search_results else "No data found."
 
-def regenerate_extra_details(day_index, day_title):
-    if use_test_mode:
-        st.session_state.itinerary_days[day_index]["extra"] = "**Extra Details (Updated):**\n- [Sample Article](https://www.google.com)\n- [Sample Playlist](https://open.spotify.com)"
-    else:
-        try:
-            prompt = f"Generate 2 cultural or music recommendations for {day_title} in {destination}. Return them as markdown list with links."
-            response = client.chat.completions.create(
-                model="gpt-4o-mini",
-                messages=[{"role": "system", "content": "You add cultural and music details."},
-                          {"role": "user", "content": prompt}],
-                temperature=0.7
-            )
-            st.session_state.itinerary_days[day_index]["extra"] = response.choices[0].message.content.strip()
-        except Exception as e:
-            st.session_state.itinerary_days[day_index]["extra"] = f"**Extra Details:** (Failed to regenerate: {e})"
+    user_prompt = f"""
+    Destination: {destination}
+    Days: {days}
+    Verified Search Results:
+    {search_context}
 
-# --- TEST DATA ---
-SAMPLE_ITINERARY = """Day 1: Arrival in Denver (2025-07-28)
-☀️ Morning: Arrive in [Denver International Airport](https://www.flydenver.com/), check into your hotel.
-🌄 Afternoon: Visit the [Denver Art Museum](https://denverartmuseum.org/) — currently featuring a Monet exhibition.
-🌙 Evening: Dinner at [Linger](https://www.lingerdenver.com/) — a rooftop restaurant with live jazz music.
+    Generate the itinerary now, following all rules.
+    """
 
-**Extra Details:**
-- **Reading:** [The History of Denver's Art Scene](https://www.google.com/search?q=The+History+of+Denver's+Art+Scene).
-- **Playlist:** [Summer Vibes in Colorado](https://open.spotify.com/playlist/37i9dQZF1DX0h0QnOySuGd).
-"""
-
-def build_prompt():
-    return f"""
-You are an AI-powered travel curator that recommends activities, restaurants, and lodging based on the user’s preferences and travel details.
-1. Search for real and current information first. Prioritize reputable sources such as travel blogs, travel magazines, local news, and city or regional guides.
-2. Search Priority Checklist:
-- Look for local events, festivals, seasonal activities, and exhibits happening during the user’s dates.
-- Highlight notable restaurants or cafes featured in trusted travel or food publications.
-- Identify unique experiences or hidden gems that locals or recent travelers recommend.
-3. After listing morning, afternoon, and evening activities for each day, ALWAYS include an "**Extra Details:**" section.
-   - This section should enrich the travel experience with:
-     - A link to a relevant article, blog, or resource for context.
-     - A playlist or music suggestion that matches the vibe (with a clickable link).
-     - If applicable, a current exhibit, seasonal highlight, or cultural insight.
-4. If no real-time information is available, fall back to general knowledge or common attractions—but never fabricate details. Instead, give reliable, general suggestions (e.g., “explore the local farmers’ market” or “try a seafood restaurant by the harbor”).
-5. Provide a mix of iconic must-sees and off-the-beaten-path recommendations tailored to the user’s interests.
-6. Suggest 2–4 options per category (activities, restaurants, lodging) with concise but vivid descriptions.
-7. Use a warm, conversational tone that feels like advice from a well-informed local.
-Goal:
-Deliver travel recommendations that are accurate, trustworthy, and feel thoughtfully curated.
-
-
-Destination: {destination}
-Trip duration: {num_days} days starting {start_date}.
-Traveler preferences: {ideal_trip}
-"""
-
-if st.checkbox("Show Prompt Preview"):
-    st.code(build_prompt(), language="markdown")
-
-# --- Generate Itinerary ---
-if st.button("Generate My Trip Ideas"):
-    if not ideal_trip or not destination:
-        st.warning("Please enter both a vacation description and a destination.")
-    else:
-        if use_test_mode:
-            raw_text = SAMPLE_ITINERARY
-        else:
-            with st.spinner("Creating your personalized itinerary..."):
-                try:
-                    response = client.chat.completions.create(
-                        model="gpt-4o-mini",
-                        messages=[
-                            {"role": "system", "content": "You are a travel planner who creates detailed itineraries with links and cultural extras."},
-                            {"role": "user", "content": build_prompt()},
-                        ],
-                        temperature=0.8
-                    )
-                    raw_text = response.choices[0].message.content
-                except Exception as e:
-                    st.error(f"Error generating itinerary: {e}")
-                    raw_text = ""
-
-        if raw_text:
-            st.session_state.itinerary_days = []
-            days = clean_to_days(raw_text)
-            for day in days:
-                lines = day.splitlines()
-                if not lines:
-                    continue
-                day_title = lines[0]
-                content = "\n".join(lines[1:])
-                content = auto_link_missing(content)
-
-                if "**Extra Details:**" in content:
-                    main_content, extra = content.split("**Extra Details:**", 1)
-                    extra_details = "**Extra Details:**" + extra
-                else:
-                    main_content = content
-                    extra_details = "**Extra Details:** (none)"
-
-                st.session_state.itinerary_days.append({
-                    "title": day_title.strip(),
-                    "main": main_content,
-                    "extra": extra_details
-                })
-
-# --- Display Itinerary ---
-if st.session_state.itinerary_days:
-    for i, day_data in enumerate(st.session_state.itinerary_days):
-        with st.expander(day_data["title"]):
-            st.markdown(day_data["main"])
-            st.markdown(day_data["extra"])
-            if st.button(f"🔄 Regenerate Extra Details for {day_data['title']}", key=f"regen_{i}"):
-                regenerate_extra_details(i, day_data["title"])
-
-    itinerary_content = ""
-    for day_data in st.session_state.itinerary_days:
-        itinerary_content += f"<h2>{day_data['title']}</h2><p>{day_data['main'].replace('\n', '<br>')}</p><p>{day_data['extra'].replace('\n', '<br>')}</p><br><br>"
-    html_output = f"<html><head><meta charset='UTF-8'><title>Travel Itinerary</title></head><body><h1>Itinerary for {destination}</h1>{itinerary_content}</body></html>"
-    html_bytes = BytesIO(html_output.encode("utf-8"))
-    st.download_button(
-        label="📥 Download Itinerary as HTML",
-        data=html_bytes,
-        file_name="travel_itinerary.html",
-        mime="text/html"
+    response = openai.ChatCompletion.create(
+        model="gpt-4o",
+        messages=[
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": user_prompt},
+        ],
+        temperature=0.3,
+        max_tokens=1200,
     )
+
+    raw_output = response['choices'][0]['message']['content']
+    return format_links(raw_output)
+
+if st.button("Generate My Trip Ideas"):
+    if destination:
+        with st.spinner("Searching and building your itinerary..."):
+            itinerary = generate_itinerary(destination, days)
+            st.markdown(itinerary)
+    else:
+        st.warning("Please enter a destination.")
