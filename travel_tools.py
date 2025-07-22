@@ -1,5 +1,4 @@
 import requests
-from bs4 import BeautifulSoup
 
 def search_activities(destination):
     """
@@ -13,18 +12,12 @@ def search_activities(destination):
     results = []
 
     # 1. Tripadvisor
-    try:
-        tripadvisor_url = f"https://www.tripadvisor.com/Search?q={destination.replace(' ', '+')}&searchSessionId="
-        results.append(f"Tripadvisor search results for {destination}: {tripadvisor_url}")
-    except Exception:
-        pass
+    tripadvisor_url = f"https://www.tripadvisor.com/Search?q={destination.replace(' ', '+')}&searchSessionId="
+    results.append(f"Tripadvisor search results for {destination}: {tripadvisor_url}")
 
     # 2. Viator
-    try:
-        viator_url = f"https://www.viator.com/searchResults/all?text={destination.replace(' ', '+')}"
-        results.append(f"Viator search results for {destination}: {viator_url}")
-    except Exception:
-        pass
+    viator_url = f"https://www.viator.com/searchResults/all?text={destination.replace(' ', '+')}"
+    results.append(f"Viator search results for {destination}: {viator_url}")
 
     # 3. Travel blogs & magazines
     blog_sources = [
