@@ -1,4 +1,6 @@
 from openai import OpenAI
+import os
+import traceback
 
 client = OpenAI()
 
@@ -31,13 +33,15 @@ Evening:
 # Search Helpers
 # ---------------------------
 def search_link(query):
-    """Simulated link search (replace with your actual search logic)."""
+    # Placeholder for integration with a search API
+    print(f"DEBUG: Searching link for query: {query}")
     return None
 
 def get_activity_link(name, location):
     if not name:
         return "No link found"
 
+    print(f"DEBUG: Getting link for '{name}' in '{location}'")
     link = search_link(f"{name} official site {location}")
     if link:
         return link
@@ -75,11 +79,22 @@ def generate_itinerary(destination, preferences):
         f"Create a one-day itinerary."
     )
 
-    response = client.chat.completions.create(
-        model="gpt-4o",
-        messages=[{"role": "system", "content": user_prompt}],
-        temperature=0.7,
-    )
+    print("DEBUG: USER PROMPT:\n", user_prompt)
+
+    try:
+        response = client.chat.completions.create(
+            model="gpt-4o",
+            messages=[{"role": "system", "content": user_prompt}],
+            temperature=0.7,
+        )
+        print("DEBUG: RAW RESPONSE:\n", response)
+    except Exception as e:
+        print("ERROR: Failed to call OpenAI API")
+        print(traceback.format_exc())
+        return "ERROR: Could not generate itinerary. Check API key and connection."
+
+    if not response.choices or not response.choices[0].message.content:
+        return "No itinerary generated. Check API key or request."
 
     raw_itinerary = response.choices[0].message.content
     polished_itinerary = polish_tone(raw_itinerary)
@@ -102,4 +117,5 @@ def generate_itinerary(destination, preferences):
 if __name__ == "__main__":
     destination = "Madrid"
     preferences = "See as many cats as possible, enjoy good food, and find swimming spots."
-    print(generate_itinerary(destination, preferences))
+    result = generate_itinerary(destination, preferences)
+    print("DEBUG: FINAL ITINERARY:\n", result)
