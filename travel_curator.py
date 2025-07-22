@@ -1,69 +1,123 @@
-import streamlit as st
-from openai import OpenAI
-from travel_tools import search_activities
+import openai
 
-# Initialize OpenAI client
-client = OpenAI(api_key=st.secrets.get("OPENAI_API_KEY", ""))
+# ---------------------------
+# Travel Curator Prompt
+# ---------------------------
+TRAVEL_CURATOR_PROMPT = """
+You are a trusted local guide and travel curator. Your mission is to create a handpicked itinerary of the best activities, attractions, and restaurants for the user, matching their request as closely as possible. Prioritize unique, authentic, and memorable experiences — as if you are personally guiding a friend.
 
-st.title("AI Travel Curator")
+**Your approach:**
+1. Search widely across reliable sources — including travel blogs, local guides, travel magazines (e.g., CN Traveler), and review sites like TripAdvisor — before making recommendations.
+2. If the user has niche requests (e.g., “see as many cats as possible”), creatively interpret this into related real-world activities (e.g., cat cafes, animal rescue centers, nature reserves).
+3. Always provide at least one verified link for each recommendation:
+   - Prefer official websites.
+   - If unavailable, use reputable sources like CN Traveler or TripAdvisor.
+4. If you cannot find an activity that matches exactly, fall back to a high-quality, generic recommendation that suits the tone of the itinerary.
+5. Never invent details. Do not fabricate activities or links.
+6. Write in the tone of a friendly local — conversational, warm, and trustworthy.
 
-# Main inputs
-destination = st.text_input("Enter your destination:")
-start_date = st.date_input("Trip start date:")
-days = st.number_input("Number of days:", min_value=1, max_value=30, value=1)
-vacation_description = st.text_area("Tell us about a vacation you loved (to help personalize your trip):")
+**Format:**
+Morning:
+[Activity + short, enticing description with a link]
+Afternoon:
+[Activity + short, enticing description with a link]
+Evening:
+[Activity + short, enticing description with a link]
+"""
 
-# Sidebar options
-st.sidebar.header("Options")
-test_mode = st.sidebar.checkbox("Run in test mode (no API calls)", value=False)
-show_prompt = st.sidebar.checkbox("Show final prompt")
-
-def build_prompt(destination, days, search_context, vacation_description):
-    return f"""Create a travel itinerary for {destination} starting on {start_date} for {days} days.
-    Tailor recommendations to the type of experiences the user enjoyed: {vacation_description}.
-    Use ONLY the verified resources provided here:
-    {search_context}
-
-    **Rules for Output:**
-    - Each activity must include the full URL in parentheses right after the activity name or description.
-    - Do not use placeholder text like '(source.)'.
-    - If no link is available, write '(No link found)'.
-    - Organize activities into Morning, Afternoon, and Evening for each day.
-    - Do not invent details or attractions not mentioned in the verified resources.
+# ---------------------------
+# Search Helpers
+# ---------------------------
+def search_link(query):
     """
+    Simulated link search (replace with your actual search logic).
+    Returns the first link found, or None.
+    """
+    # Placeholder for integration with a search API
+    return None
 
-def generate_itinerary(destination, days):
-    system_prompt = """You are a travel planning assistant. Use only the provided search results and user preferences
-    to create a personalized itinerary. Each activity must include the URL in parentheses. Avoid invented content."""
+def get_activity_link(name, location):
+    """
+    Try to find a reliable link for the given activity/restaurant.
+    """
+    if not name:
+        return "No link found"
 
-    search_results = search_activities(destination)
-    search_context = "\n".join(search_results) if search_results else "No data found."
-    user_prompt = build_prompt(destination, days, search_context, vacation_description)
+    # Try official site first
+    link = search_link(f"{name} official site {location}")
+    if link:
+        return link
 
-    if show_prompt:
-        st.sidebar.subheader("Prompt Preview")
-        st.sidebar.text_area("System Prompt", system_prompt, height=150)
-        st.sidebar.text_area("User Prompt", user_prompt, height=250)
+    # Try CN Traveler or TripAdvisor
+    link = search_link(f"{name} site:cntraveler.com OR site:tripadvisor.com {location}")
+    if link:
+        return link
 
-    if test_mode:
-        return "**TEST MODE:** No API call made.\n\nSample Itinerary:\n- Morning: Visit a landmark (No link found)\n- Afternoon: Explore a museum (No link found)\n- Evening: Enjoy local cuisine (No link found)"
+    # Try generic best-of search
+    link = search_link(f"best {name} {location}")
+    return link or "No link found"
 
-    response = client.chat.completions.create(
-        model="gpt-4o",
-        messages=[
-            {"role": "system", "content": system_prompt},
-            {"role": "user", "content": user_prompt},
-        ],
-        temperature=0.3,
-        max_tokens=1200,
+# ---------------------------
+# Tone Polishing
+# ---------------------------
+def polish_tone(text):
+    """
+    Adjusts tone to be warm and local-friendly.
+    """
+    replacements = {
+        "Visit": "Head over to",
+        "Explore": "Wander through",
+        "Enjoy": "Savor",
+        "Dine": "Treat yourself to dinner at",
+        "Lunch": "Stop for lunch at",
+    }
+    for k, v in replacements.items():
+        text = text.replace(k, v)
+    return text
+
+# ---------------------------
+# Itinerary Generation
+# ---------------------------
+def generate_itinerary(destination, preferences):
+    """
+    Generate a day itinerary for a destination with user preferences.
+    """
+    user_prompt = (
+        f"{TRAVEL_CURATOR_PROMPT}\n"
+        f"Destination: {destination}\n"
+        f"Preferences: {preferences}\n"
+        f"Create a one-day itinerary."
     )
 
-    return response.choices[0].message.content
+    response = openai.ChatCompletion.create(
+        model="gpt-4o",
+        messages=[{"role": "system", "content": user_prompt}],
+        temperature=0.7,
+    )
 
-if st.button("Generate My Trip Ideas"):
-    if destination:
-        with st.spinner("Building your itinerary..."):
-            itinerary = generate_itinerary(destination, days)
-            st.markdown(itinerary)
-    else:
-        st.warning("Please enter a destination.")
+    raw_itinerary = response.choices[0].message["content"]
+
+    # Optional: Polishing step for tone
+    polished_itinerary = polish_tone(raw_itinerary)
+
+    # OPTIONAL: Link correction step
+    final_lines = []
+    for line in polished_itinerary.split("\n"):
+        if line.strip() and ("http" not in line or "No link found" in line):
+            # Extract a rough activity name
+            activity_name = line.split(":")[0].strip("-• ")
+            if activity_name and destination:
+                link = get_activity_link(activity_name, destination)
+                if link != "No link found":
+                    line = f"{line} ({link})"
+        final_lines.append(line)
+
+    return "\n".join(final_lines)
+
+# ---------------------------
+# Example Usage
+# ---------------------------
+if __name__ == "__main__":
+    destination = "Madrid"
+    preferences = "See as many cats as possible, enjoy good food, and find swimming spots."
+    print(generate_itinerary(destination, preferences))
