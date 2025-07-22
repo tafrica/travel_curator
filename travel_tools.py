@@ -1,34 +1,54 @@
 import requests
+from bs4 import BeautifulSoup
+
+def get_tripadvisor_activities(destination):
+    activities = []
+    try:
+        query = destination.replace(' ', '+')
+        url = f"https://www.tripadvisor.com/Search?q={query}"
+        headers = {'User-Agent': 'Mozilla/5.0'}
+        response = requests.get(url, headers=headers, timeout=10)
+        if response.status_code == 200:
+            soup = BeautifulSoup(response.text, 'html.parser')
+            # Look for activity links (common structure in TripAdvisor search results)
+            for a in soup.select('a[href*="/Attraction_Review-"]', limit=5):
+                name = a.get_text(strip=True)
+                link = "https://www.tripadvisor.com" + a['href']
+                activities.append(f"{name} ({link})")
+    except Exception as e:
+        activities.append(f"Error fetching TripAdvisor activities: {e}")
+    return activities
+
+def get_viator_activities(destination):
+    activities = []
+    try:
+        query = destination.replace(' ', '+')
+        url = f"https://www.viator.com/searchResults/all?text={query}"
+        headers = {'User-Agent': 'Mozilla/5.0'}
+        response = requests.get(url, headers=headers, timeout=10)
+        if response.status_code == 200:
+            soup = BeautifulSoup(response.text, 'html.parser')
+            # Look for activity links
+            for a in soup.select('a[href*="/tours/"]', limit=5):
+                name = a.get_text(strip=True)
+                link = "https://www.viator.com" + a['href']
+                activities.append(f"{name} ({link})")
+    except Exception as e:
+        activities.append(f"Error fetching Viator activities: {e}")
+    return activities
 
 def search_activities(destination):
-    """
-    Search for activities using a priority of:
-    1. Tripadvisor
-    2. Viator
-    3. Travel blogs, magazines, and event calendars
-    Returns a list of strings with titles and URLs.
-    """
-
     results = []
-
-    # 1. Tripadvisor
-    tripadvisor_url = f"https://www.tripadvisor.com/Search?q={destination.replace(' ', '+')}&searchSessionId="
-    results.append(f"Tripadvisor search results for {destination}: {tripadvisor_url}")
-
-    # 2. Viator
-    viator_url = f"https://www.viator.com/searchResults/all?text={destination.replace(' ', '+')}"
-    results.append(f"Viator search results for {destination}: {viator_url}")
-
-    # 3. Travel blogs & magazines
-    blog_sources = [
-        f"https://www.nomadicmatt.com/travel-blogs/?s={destination.replace(' ', '+')}",
-        f"https://www.cntraveler.com/search?q={destination.replace(' ', '+')}",
-        f"https://www.timeout.com/search?query={destination.replace(' ', '+')}"
-    ]
-    for url in blog_sources:
-        results.append(f"Blog/Magazine search: {url}")
-
+    # Try TripAdvisor
+    results.extend(get_tripadvisor_activities(destination))
+    # Try Viator
+    results.extend(get_viator_activities(destination))
+    # Fallback blog sources
     if not results:
-        results.append("No data found.")
-
+        blog_sources = [
+            f"Nomadic Matt search for {destination}: https://www.nomadicmatt.com/travel-blogs/?s={destination.replace(' ', '+')}",
+            f"Conde Nast search for {destination}: https://www.cntraveler.com/search?q={destination.replace(' ', '+')}",
+            f"TimeOut search for {destination}: https://www.timeout.com/search?query={destination.replace(' ', '+')}"
+        ]
+        results.extend(blog_sources)
     return results
