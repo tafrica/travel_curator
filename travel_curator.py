@@ -12,6 +12,10 @@ def add_bing_search_links(text):
     linked_set = set()
     for line in lines:
         stripped = line.strip()
+        lower_stripped = stripped.lower()
+        if lower_stripped.startswith(('extra details', 'morning', 'afternoon', 'evening')):
+            new_lines.append(line)
+            continue
         if stripped.startswith('- '):
             parts = stripped[2:].split(' ', 3)
             candidate = ' '.join(parts[:3]) if len(parts) >= 2 else parts[0]
@@ -25,8 +29,6 @@ def add_bing_search_links(text):
             linked_set.add(stripped)
         new_lines.append(line)
     return "\n".join(new_lines)
-
-
 def validate_links(text):
     import re, requests
     pattern = r'\[(.*?)\]\((http[s]?://.*?)\)'
