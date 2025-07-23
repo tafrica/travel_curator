@@ -15,15 +15,25 @@ def add_bing_search_links(text):
     for line in lines:
         stripped = line.strip()
         lower_stripped = stripped.lower()
-        # Skip lines starting with section headers or Extra Details
+        # Skip section headers
         if lower_stripped.startswith(('extra details', 'morning', 'afternoon', 'evening', 'day ')):
             new_lines.append(line)
             continue
-        # Skip lines that already have a link or punctuation
+        # Check for meal lines like 'Lunch at The Pullman'
+        meal_match = re.match(r'(Breakfast|Lunch|Dinner) at (.+)', stripped, re.IGNORECASE)
+        if meal_match:
+            meal, place = meal_match.groups()
+            if place not in linked_set:
+                query = urllib.parse.quote(place + " official site")
+                line = f"{meal} at [{place}](https://www.bing.com/search?q={query})"
+                linked_set.add(place)
+            new_lines.append(line)
+            continue
+        # Skip lines that already have links or punctuation
         if 'http' in stripped or '[' in stripped or re.search(r'[.,!?]', stripped):
             new_lines.append(line)
             continue
-        # Link only short title-like lines
+        # Link short title-like lines
         if stripped and len(stripped.split()) <= 5 and stripped == stripped.title() and stripped not in linked_set:
             query = urllib.parse.quote(stripped + " official site")
             line = f"[{stripped}](https://www.bing.com/search?q={query})"
