@@ -9,11 +9,20 @@ def add_bing_search_links(text):
     import re, urllib.parse
     lines = text.split("\n")
     new_lines = []
+    linked_set = set()
     for line in lines:
         stripped = line.strip()
-        if stripped and not stripped.startswith('*') and '[' not in stripped and len(stripped.split()) <= 5 and stripped == stripped.title():
+        if stripped.startswith('- '):
+            parts = stripped[2:].split(' ', 3)
+            candidate = ' '.join(parts[:3]) if len(parts) >= 2 else parts[0]
+            if candidate == candidate.title() and candidate not in linked_set:
+                query = urllib.parse.quote(candidate + " official site")
+                linked_set.add(candidate)
+                line = line.replace(candidate, f"[{candidate}](https://www.bing.com/search?q={query})", 1)
+        elif stripped and '[' not in stripped and len(stripped.split()) <= 5 and stripped == stripped.title() and stripped not in linked_set:
             query = urllib.parse.quote(stripped + " official site")
             line = f"[{stripped}](https://www.bing.com/search?q={query})"
+            linked_set.add(stripped)
         new_lines.append(line)
     return "\n".join(new_lines)
 
