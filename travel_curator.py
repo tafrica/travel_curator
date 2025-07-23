@@ -5,6 +5,22 @@ import os
 
 from openai import OpenAI
 
+def validate_links(text):
+    import re, requests
+    pattern = r'\[(.*?)\]\((http[s]?://.*?)\)'
+    matches = re.findall(pattern, text)
+    for label, url in matches:
+        try:
+            r = requests.head(url, timeout=3)
+            if r.status_code >= 400:
+                print(f"DEBUG: Broken link detected and replaced: {url}")
+                text = text.replace(f'({url})', f'(https://www.google.com/maps/search/{label})')
+        except Exception:
+            print(f"DEBUG: Error checking link, replaced: {url}")
+            text = text.replace(f'({url})', f'(https://www.google.com/maps/search/{label})')
+    return text
+
+
 st.set_page_config(page_title="Your Personalized Travel Curator", page_icon="🌍")
 st.title("🌍 Your Personalized Travel Curator (OpenAI Safe Mode)")
 
@@ -110,16 +126,3 @@ if st.button("Generate My Trip Ideas"):
             mime="text/html"
         )
 
-
-def validate_links(text):
-    import re, requests
-    pattern = r'\[(.*?)\]\((http[s]?://.*?)\)'
-    matches = re.findall(pattern, text)
-    for label, url in matches:
-        try:
-            r = requests.head(url, timeout=3)
-            if r.status_code >= 400:
-                text = text.replace(f'({url})', f'(https://www.google.com/maps/search/{label})')
-        except Exception:
-            text = text.replace(f'({url})', f'(https://www.google.com/maps/search/{label})')
-    return text
