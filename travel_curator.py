@@ -7,18 +7,15 @@ from openai import OpenAI
 
 def add_bing_search_links(text):
     import re, urllib.parse
-    lines = text.split("
-")
+    lines = text.split("\n")
     new_lines = []
     for line in lines:
         stripped = line.strip()
-        # Link only short title-like lines without punctuation
         if stripped and not stripped.startswith('*') and '[' not in stripped and len(stripped.split()) <= 5 and stripped == stripped.title():
             query = urllib.parse.quote(stripped + " official site")
             line = f"[{stripped}](https://www.bing.com/search?q={query})"
         new_lines.append(line)
-    return "
-".join(new_lines)
+    return "\n".join(new_lines)
 
 
 def validate_links(text):
