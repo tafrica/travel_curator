@@ -7,15 +7,16 @@ from openai import OpenAI
 
 def add_bing_search_links(text):
     import re, urllib.parse
-    lines = text.split("
-")
+    lines = text.split("\n")
     new_lines = []
     for line in lines:
         if line.strip() and not line.strip().startswith('*') and '[' not in line:
             query = urllib.parse.quote(line.strip() + " official site")
             line = f"[{line.strip()}](https://www.bing.com/search?q={query})"
         new_lines.append(line)
-    return "
+    return "\n".join(new_lines)
+
+
 ".join(new_lines)
 
 
