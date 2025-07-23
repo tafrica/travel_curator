@@ -59,12 +59,13 @@ For every restaurant, activity, or attraction:
 - If no official site exists, use a Google Maps search link (e.g., [Place Name](https://www.google.com/maps/search/Place+Name)).
 - Do not fabricate URLs. If nothing is found, simply list the activity name without a link.
 
-After listing morning, afternoon, and evening activities for each day, ALWAYS include an "**Extra Details:**" section.
-- This section should enrich the travel experience with:
-  - A link to a relevant article, blog, or resource for context.
-  - If applicable, a current exhibit, seasonal highlight, or cultural insight.
+For the "**Extra Details:**" section:
+- Provide general suggestions (e.g., "Read more about the local art scene") without a link if you can't find a real, verifiable article.
+- Only include links from well-known and real sources (such as Wikipedia, Lonely Planet, or official city guides).
+- Never invent or guess links.
 
-Never skip Extra Details or links — create them even if you have to search generically.
+After listing morning, afternoon, and evening activities for each day, ALWAYS include an "**Extra Details:**" section.
+- This section should enrich the travel experience with cultural context, a relevant article link (only if real), and possibly a seasonal highlight.
 
 Destination: {destination}
 Trip duration: {num_days} days starting {start_date}.
