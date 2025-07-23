@@ -7,6 +7,21 @@ import re
 import urllib.parse
 from io import BytesIO
 
+import requests
+
+def validate_links(text):
+    pattern = r'\[(.*?)\]\((http[s]?://.*?)\)'
+    matches = re.findall(pattern, text)
+    for label, url in matches:
+        try:
+            r = requests.head(url, timeout=5)
+            if r.status_code != 200:
+                text = text.replace(f"({url})", "(No link found)")
+        except:
+            text = text.replace(f"({url})", "(No link found)")
+    return text
+
+
 # --- CONFIG ---
 use_test_mode = st.sidebar.checkbox("Use Test Mode (No API calls)", value=True)
 
@@ -39,7 +54,6 @@ def ensure_extra_details(day_text):
     if "**Extra Details:**" not in day_text:
         day_text += "\n\n**Extra Details:**\n"
         day_text += "- [Explore the destination on Google](https://www.google.com/search?q=" + urllib.parse.quote(destination) + ")\n"
-        day_text += "- [Listen to a themed playlist](https://open.spotify.com/search/" + urllib.parse.quote(destination) + ")"
     return day_text
 
 def clean_to_days(text):
@@ -103,8 +117,7 @@ You are a creative travel planner. Your goal is to create itineraries that feel 
 2. After listing morning, afternoon, and evening activities for each day, always include an "**Extra Details:**" section.
    - This section should enrich the travel experience with:
      - A link to a relevant article, blog, or resource for context.
-     - A playlist or music suggestion that matches the vibe (with a clickable link).
-     - If applicable, a current exhibit, seasonal highlight, or cultural insight.
+     -      - If applicable, a current exhibit, seasonal highlight, or cultural insight.
 3. If real-time information is not available, provide general but realistic suggestions, making it clear they are general recommendations rather than specific real-time data.
 4. Never fabricate links, restaurant names, or events.
 
@@ -167,8 +180,8 @@ if st.button("Generate My Trip Ideas"):
 if st.session_state.itinerary_days:
     for i, day_data in enumerate(st.session_state.itinerary_days):
         with st.expander(day_data["title"]):
-            st.markdown(day_data["main"])
-            st.markdown(day_data["extra"])
+            st.markdown(validate_links(day_data["main"]))
+            st.markdown(validate_links(day_data["extra"]))
             if st.button(f"🔄 Regenerate Extra Details for {day_data['title']}", key=f"regen_{i}"):
                 regenerate_extra_details(i, day_data["title"])
 
