@@ -97,6 +97,7 @@ if st.button("Generate My Trip Ideas"):
                     st.error(f"Error generating itinerary: {e}")
                     raw_text = SAMPLE_ITINERARY
 
+        raw_text = validate_links(raw_text)
         st.markdown(raw_text)
 
         # --- Download Button ---
