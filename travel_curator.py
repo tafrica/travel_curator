@@ -17,12 +17,6 @@ def add_bing_search_links(text):
     return "\n".join(new_lines)
 
 
-".join(new_lines)
-
-
-".join(new_lines)
-
-
 def validate_links(text):
     import re, requests
     pattern = r'\[(.*?)\]\((http[s]?://.*?)\)'
