@@ -69,9 +69,9 @@ def build_prompt():
     return f"""You are a creative travel planner. Your goal is to create itineraries that feel curated, personal, and full of cultural depth.
 
 For every restaurant, activity, or attraction:
-- Use the official website if available.
-- Do not include TripAdvisor links at all.
-- If no official site exists, use a Google Maps search link (e.g., [Place Name](https://www.google.com/maps/search/Place+Name)).
+- Always prefer the official website (e.g., historycolorado.org for History Colorado Center).
+- Do not include TripAdvisor links.
+- Only use Google Maps search links if no official website can be found.
 - Do not fabricate URLs. If nothing is found, simply list the activity name without a link.
 
 For the "**Extra Details:**" section:
