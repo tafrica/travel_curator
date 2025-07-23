@@ -1,22 +1,15 @@
 import streamlit as st
-from openai import OpenAI
-import os
-from dotenv import load_dotenv
-from datetime import date
-import re
-import urllib.parse
-from io import BytesIO
 
-import requests
+st.write("DEBUG: Streamlit started successfully.")
 
-def validate_links(text):
-    pattern = r'\[(.*?)\]\((http[s]?://.*?)\)'
-    matches = re.findall(pattern, text)
-    for label, url in matches:
-        try:
-            r = requests.get(url, timeout=5, stream=True, allow_redirects=True)
-            if r.status_code == 404:
-                text = text.replace(f"({url})", "(No link found)")
-        except:
-            continue
-    return text
+try:
+    st.set_page_config(page_title="Diagnostic Travel Curator", page_icon="🔍")
+    st.write("DEBUG: Page config set.")
+except Exception as e:
+    st.error(f"Page config error: {e}")
+
+st.title("🔍 Diagnostic Mode")
+st.write("If you can see this, Streamlit is working.")
+
+if st.button("Run Test"):
+    st.write("DEBUG: Test button clicked.")
