@@ -7,17 +7,18 @@ from openai import OpenAI
 
 def add_bing_search_links(text):
     import re, urllib.parse
-    lines = text.split('
-')
+    lines = text.split("
+")
     new_lines = []
     for line in lines:
-        # Match activity names or places (skip lines with markdown links already)
         if line.strip() and not line.strip().startswith('*') and '[' not in line:
-            # Build a Bing search link
             query = urllib.parse.quote(line.strip() + " official site")
             line = f"[{line.strip()}](https://www.bing.com/search?q={query})"
         new_lines.append(line)
     return "
+".join(new_lines)
+
+
 ".join(new_lines)
 
 
