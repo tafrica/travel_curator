@@ -54,8 +54,7 @@ def build_prompt():
 
 For every restaurant, activity, or attraction:
 - Use the official website if available.
-- If you find an additional trusted source (like TripAdvisor, a reputable travel blog, or a review site) that clearly corresponds to the same activity, add it as a second link.
-- Only include a TripAdvisor or blog link if you are certain it corresponds to the activity. If unsure, do not include a TripAdvisor link.
+- Do not include TripAdvisor links at all.
 - If no official site exists, use a Google Maps search link (e.g., [Place Name](https://www.google.com/maps/search/Place+Name)).
 - Do not fabricate URLs. If nothing is found, simply list the activity name without a link.
 
@@ -109,3 +108,17 @@ if st.button("Generate My Trip Ideas"):
             file_name="travel_itinerary.html",
             mime="text/html"
         )
+
+
+def validate_links(text):
+    import re, requests
+    pattern = r'\[(.*?)\]\((http[s]?://.*?)\)'
+    matches = re.findall(pattern, text)
+    for label, url in matches:
+        try:
+            r = requests.head(url, timeout=3)
+            if r.status_code >= 400:
+                text = text.replace(f'({url})', f'(https://www.google.com/maps/search/{label})')
+        except Exception:
+            text = text.replace(f'({url})', f'(https://www.google.com/maps/search/{label})')
+    return text
