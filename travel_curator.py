@@ -7,23 +7,24 @@ from openai import OpenAI
 
 def add_bing_search_links(text):
     import re, urllib.parse
+    # Remove any AI-provided Google Maps links
+    text = re.sub(r'\[([^\]]+)\]\(https://www\.google\.com/maps[^)]+\)', r'\1', text)
     lines = text.split("\n")
     new_lines = []
     linked_set = set()
     for line in lines:
         stripped = line.strip()
         lower_stripped = stripped.lower()
-        if lower_stripped.startswith(('extra details', 'morning', 'afternoon', 'evening')):
+        # Skip lines starting with section headers or Extra Details
+        if lower_stripped.startswith(('extra details', 'morning', 'afternoon', 'evening', 'day ')):
             new_lines.append(line)
             continue
-        if stripped.startswith('- '):
-            parts = stripped[2:].split(' ', 3)
-            candidate = ' '.join(parts[:3]) if len(parts) >= 2 else parts[0]
-            if candidate == candidate.title() and candidate not in linked_set:
-                query = urllib.parse.quote(candidate + " official site")
-                linked_set.add(candidate)
-                line = line.replace(candidate, f"[{candidate}](https://www.bing.com/search?q={query})", 1)
-        elif stripped and '[' not in stripped and len(stripped.split()) <= 5 and stripped == stripped.title() and stripped not in linked_set:
+        # Skip lines that already have a link or punctuation
+        if 'http' in stripped or '[' in stripped or re.search(r'[.,!?]', stripped):
+            new_lines.append(line)
+            continue
+        # Link only short title-like lines
+        if stripped and len(stripped.split()) <= 5 and stripped == stripped.title() and stripped not in linked_set:
             query = urllib.parse.quote(stripped + " official site")
             line = f"[{stripped}](https://www.bing.com/search?q={query})"
             linked_set.add(stripped)
